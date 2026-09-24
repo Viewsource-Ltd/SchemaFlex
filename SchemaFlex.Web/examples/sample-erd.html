@@ -1,0 +1,3082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SchemaFlex</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjMGQxMDE1Ii8+CiAgICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiM0Y2I3ZWMiIHN0cm9rZS13aWR0aD0iMS44Ij4KICAgICAgICA8cmVjdCB4PSI0IiB5PSI2IiB3aWR0aD0iOSIgaGVpZ2h0PSI3IiByeD0iMS42Ii8+CiAgICAgICAgPHJlY3QgeD0iMTkiIHk9IjYiIHdpZHRoPSI5IiBoZWlnaHQ9IjciIHJ4PSIxLjYiLz4KICAgICAgICA8cmVjdCB4PSIxMS41IiB5PSIxOSIgd2lkdGg9IjkiIGhlaWdodD0iNyIgcng9IjEuNiIvPgogICAgICAgIDxwYXRoIGQ9Ik04LjUgMTN2M2EzIDMgMCAwIDAgMyAzaDEiLz4KICAgICAgICA8cGF0aCBkPSJNMjMuNSAxM3YzYTMgMyAwIDAgMS0zIDNoLTEiLz4KICAgIDwvZz4KPC9zdmc+Cg==">
+<style>
+/* Runtime scale: the whole app is drawn a fifth larger than the browser default, the
+   same convention every *Flex tool uses, so a screenshot from one matches the rest. */
+:root {
+    font-size: 120%;
+}
+
+/* SchemaFlex theme. Dark is the default - this is a developer tool - and light applies
+   when the user picks it, or the system asks for it and the user has not overridden
+   that. Every token lives on bare :root so no colour exists only inside a media query. */
+:root {
+    color-scheme: dark;
+    --sf-bg: #0d1015;
+    --sf-pane: #15191f;
+    --sf-pane-alt: #11151a;
+    --sf-chrome: #0a0d11;
+    --sf-chrome-2: #12161c;
+    --sf-chrome-hover: #1e242d;
+    --sf-border: #262f3a;
+    --sf-border-soft: #1a212a;
+    --sf-text: #dde5ee;
+    --sf-muted: #8391a2;
+    --sf-faint: #56626f;
+    --sf-accent: #4cb7ec;
+    --sf-accent-bright: #6bc8f5;
+    --sf-accent-ink: #04141e;
+    --sf-accent-dim: rgba(76, 183, 236, 0.45);
+    --sf-accent-wash: rgba(76, 183, 236, 0.14);
+
+    --sf-good: #3ecf8e;
+    --sf-good-wash: rgba(62, 207, 142, 0.13);
+    --sf-warn: #e8a33c;
+    --sf-warn-wash: rgba(232, 163, 60, 0.13);
+    --sf-danger: #f2777a;
+    --sf-danger-wash: rgba(242, 119, 122, 0.13);
+
+    --sf-pk: #e8b76c;
+    --sf-fk: #8b7cf6;
+    --sf-enum: #e28ad6;
+
+    --sf-canvas-bg: #0a0d11;
+    --sf-canvas-dot: #1c232c;
+    --sf-table-head: #182028;
+    --sf-table-row-alt: rgba(255, 255, 255, 0.015);
+    --sf-edge: #4b5867;
+    --sf-edge-hot: var(--sf-accent-bright);
+
+    --sf-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --sf-bg: #e7ebf0;
+    --sf-pane: #ffffff;
+    --sf-pane-alt: #f7f9fb;
+    --sf-chrome: #f9fbfc;
+    --sf-chrome-2: #f1f4f7;
+    --sf-chrome-hover: #e4e9ef;
+    --sf-border: #ccd5df;
+    --sf-border-soft: #dde4eb;
+    --sf-text: #18202a;
+    --sf-muted: #5a6673;
+    --sf-faint: #98a3af;
+    --sf-accent: #1a86c4;
+    --sf-accent-bright: #1670a3;
+    --sf-accent-ink: #ffffff;
+    --sf-accent-dim: rgba(26, 134, 196, 0.45);
+    --sf-accent-wash: rgba(26, 134, 196, 0.10);
+
+    --sf-good: #0f7a52;
+    --sf-good-wash: rgba(15, 122, 82, 0.10);
+    --sf-warn: #9a5c00;
+    --sf-warn-wash: rgba(154, 92, 0, 0.10);
+    --sf-danger: #c02f33;
+    --sf-danger-wash: rgba(192, 47, 51, 0.09);
+
+    --sf-pk: #9a5c00;
+    --sf-fk: #5b48d8;
+    --sf-enum: #9a3f8c;
+
+    --sf-canvas-bg: #eef1f5;
+    --sf-canvas-dot: #d7dde4;
+    --sf-table-head: #eef3f7;
+    --sf-table-row-alt: rgba(0, 0, 0, 0.02);
+    --sf-edge: #96a2af;
+    --sf-edge-hot: var(--sf-accent-bright);
+
+    --sf-shadow: 0 1px 2px rgba(24, 32, 42, 0.06);
+}
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --sf-bg: #e7ebf0;
+        --sf-pane: #ffffff;
+        --sf-pane-alt: #f7f9fb;
+        --sf-chrome: #f9fbfc;
+        --sf-chrome-2: #f1f4f7;
+        --sf-chrome-hover: #e4e9ef;
+        --sf-border: #ccd5df;
+        --sf-border-soft: #dde4eb;
+        --sf-text: #18202a;
+        --sf-muted: #5a6673;
+        --sf-faint: #98a3af;
+        --sf-accent: #1a86c4;
+        --sf-accent-bright: #1670a3;
+        --sf-accent-ink: #ffffff;
+        --sf-accent-dim: rgba(26, 134, 196, 0.45);
+        --sf-accent-wash: rgba(26, 134, 196, 0.10);
+
+        --sf-good: #0f7a52;
+        --sf-good-wash: rgba(15, 122, 82, 0.10);
+        --sf-warn: #9a5c00;
+        --sf-warn-wash: rgba(154, 92, 0, 0.10);
+        --sf-danger: #c02f33;
+        --sf-danger-wash: rgba(192, 47, 51, 0.09);
+
+        --sf-pk: #9a5c00;
+        --sf-fk: #5b48d8;
+        --sf-enum: #9a3f8c;
+
+        --sf-canvas-bg: #eef1f5;
+        --sf-canvas-dot: #d7dde4;
+        --sf-table-head: #eef3f7;
+        --sf-table-row-alt: rgba(0, 0, 0, 0.02);
+        --sf-edge: #96a2af;
+        --sf-edge-hot: var(--sf-accent-bright);
+
+        --sf-shadow: 0 1px 2px rgba(24, 32, 42, 0.06);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--sf-bg);
+}
+
+.sf-shell {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--sf-bg);
+    color: var(--sf-text);
+    font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+}
+
+/* ── App bar ─────────────────────────────────────────────────────────────── */
+.appbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: none;
+    height: 2.75rem;
+    padding: 0 0.625rem;
+    background: var(--sf-chrome);
+    border-bottom: 1px solid var(--sf-border);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    flex: none;
+}
+
+.brand-mark {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: var(--sf-accent);
+}
+
+.brand-mark rect:nth-of-type(2) {
+    fill: var(--sf-fk);
+}
+
+.brand-mark rect:nth-of-type(3) {
+    fill: var(--sf-good);
+}
+
+.brand-name {
+    color: var(--sf-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.brand-name-accent {
+    color: var(--sf-accent);
+}
+
+.appbar-note {
+    margin: 0;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--sf-border);
+    color: var(--sf-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appbar-spacer {
+    flex: 1;
+    min-width: 0.25rem;
+}
+
+.appbar-search {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex: none;
+    width: 13.5rem;
+    max-width: 40vw;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 6px;
+    background: var(--sf-pane);
+}
+
+.appbar-search svg {
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+    fill: none;
+    stroke: var(--sf-faint);
+    stroke-width: 1.6;
+}
+
+.appbar-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--sf-text);
+    font: inherit;
+    font-size: 0.75rem;
+}
+
+.appbar-search input::placeholder {
+    color: var(--sf-faint);
+}
+
+@media (max-width: 57.59rem) {
+    .appbar { gap: 0.5rem; }
+    .appbar-note { display: none; }
+    .appbar-search { width: 9rem; }
+}
+
+/* ── Shared controls ─────────────────────────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.1875rem 0.4375rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--sf-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--sf-chrome-hover);
+    border-color: var(--sf-border);
+    color: var(--sf-text);
+}
+
+.btn:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.btn-strong {
+    border-color: var(--sf-border);
+    background: var(--sf-pane);
+    color: var(--sf-text);
+}
+
+.btn-strong:hover:not(:disabled) {
+    border-color: var(--sf-accent-dim);
+    background: var(--sf-accent-wash);
+    color: var(--sf-text);
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 5px;
+    background: var(--sf-pane);
+    color: var(--sf-muted);
+    cursor: pointer;
+}
+
+.icon-btn:hover:not(:disabled) {
+    background: var(--sf-chrome-hover);
+    color: var(--sf-text);
+}
+
+.icon-btn svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+}
+
+.seg {
+    display: inline-flex;
+    flex: none;
+    overflow: hidden;
+    border: 1px solid var(--sf-border);
+    border-radius: 5px;
+}
+
+.seg > button {
+    padding: 0.125rem 0.4375rem;
+    border: 0;
+    background: transparent;
+    color: var(--sf-muted);
+    font: inherit;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.seg > button + button {
+    border-left: 1px solid var(--sf-border);
+}
+
+.seg > button:hover:not(.is-on) {
+    background: var(--sf-chrome-hover);
+    color: var(--sf-text);
+}
+
+.seg > button.is-on {
+    background: var(--sf-accent-wash);
+    color: var(--sf-accent);
+    font-weight: 600;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    flex: none;
+    padding: 0.0625rem 0.4375rem 0.0625rem 0.375rem;
+    border: 1px solid color-mix(in srgb, var(--tone, var(--sf-muted)) 40%, transparent);
+    border-radius: 999px;
+    background: var(--tone-wash, transparent);
+    color: var(--tone, var(--sf-muted));
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-good { --tone: var(--sf-good); --tone-wash: var(--sf-good-wash); }
+.badge-warn { --tone: var(--sf-warn); --tone-wash: var(--sf-warn-wash); }
+
+/* ── Body: sidebar + canvas ──────────────────────────────────────────────── */
+.sf-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: 16.5rem;
+    min-height: 0;
+    background: var(--sf-pane-alt);
+    border-right: 1px solid var(--sf-border-soft);
+}
+
+.sidebar.is-collapsed {
+    width: auto;
+}
+
+.sidebar.is-collapsed .sidebar-head-text,
+.sidebar.is-collapsed .table-list,
+.sidebar.is-collapsed .enums-section,
+.sidebar.is-collapsed .sidebar-foot {
+    display: none;
+}
+
+.sidebar-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: none;
+    padding: 0.625rem 0.75rem 0.4375rem;
+}
+
+.sidebar.is-collapsed .sidebar-head {
+    padding: 0.625rem;
+}
+
+#sidebar-toggle svg {
+    transition: transform 0.15s ease;
+}
+
+.sidebar.is-collapsed #sidebar-toggle svg {
+    transform: rotate(180deg);
+}
+
+.sidebar-head-text {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-title {
+    margin: 0;
+    color: var(--sf-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.sidebar-count {
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.table-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 0.375rem 0.5rem;
+}
+
+.table-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--sf-text);
+    font: inherit;
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.table-item:hover {
+    background: var(--sf-chrome-hover);
+}
+
+.table-item.is-active {
+    background: var(--sf-accent-wash);
+    color: var(--sf-accent);
+}
+
+.table-item-dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--sf-faint);
+}
+
+.table-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.table-item-count {
+    flex: none;
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sidebar-empty {
+    padding: 1rem 0.75rem;
+    color: var(--sf-faint);
+    font-size: 0.8125rem;
+}
+
+.enums-section {
+    flex: none;
+    max-height: 10rem;
+    overflow-y: auto;
+    padding: 0.375rem 0.75rem 0.625rem;
+    border-top: 1px solid var(--sf-border-soft);
+}
+
+.enum-item {
+    padding: 0.25rem 0;
+}
+
+.enum-name {
+    display: flex;
+    align-items: center;
+    gap: 0.3125rem;
+    color: var(--sf-enum);
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.enum-name::before {
+    content: "";
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 2px;
+    background: var(--sf-enum);
+}
+
+.enum-values {
+    margin: 0.125rem 0 0 0.8125rem;
+    color: var(--sf-muted);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.sidebar-foot {
+    flex: none;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--sf-border-soft);
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+}
+
+/* ── Details panel ────────────────────────────────────────────────────────── */
+.details-panel {
+    display: none;
+    flex-direction: column;
+    flex: none;
+    width: 19.5rem;
+    min-height: 0;
+    background: var(--sf-pane-alt);
+    border-left: 1px solid var(--sf-border-soft);
+}
+
+.details-panel.is-visible {
+    display: flex;
+}
+
+.details-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex: none;
+    padding: 0.625rem 0.5rem 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+}
+
+.details-title {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: break-word;
+    color: var(--sf-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.details-subtitle {
+    margin: 0.125rem 0 0;
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+}
+
+.details-comment {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+    color: var(--sf-muted);
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+.details-columns {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.details-row {
+    padding: 0.4375rem 0.75rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+}
+
+.details-row-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+}
+
+.details-row-name {
+    color: var(--sf-text);
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+    font-size: 0.8125rem;
+}
+
+.details-row-name.is-pk {
+    color: var(--sf-pk);
+    font-weight: 600;
+}
+
+.details-row-type {
+    margin-left: auto;
+    flex: none;
+    color: var(--sf-faint);
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+}
+
+.details-row-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.3125rem;
+    border-radius: 3px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.3125rem;
+}
+
+.tag-pk { background: color-mix(in srgb, var(--sf-pk) 16%, transparent); color: var(--sf-pk); }
+.tag-fk { background: color-mix(in srgb, var(--sf-fk) 16%, transparent); color: var(--sf-fk); }
+.tag-enum { background: color-mix(in srgb, var(--sf-enum) 16%, transparent); color: var(--sf-enum); }
+.tag-null { background: color-mix(in srgb, var(--sf-faint) 20%, transparent); color: var(--sf-muted); }
+.tag-unique { background: color-mix(in srgb, var(--sf-good) 16%, transparent); color: var(--sf-good); }
+.tag-generated { background: color-mix(in srgb, var(--sf-warn) 16%, transparent); color: var(--sf-warn); }
+.tag-trigger { background: color-mix(in srgb, var(--sf-fk) 16%, transparent); color: var(--sf-fk); }
+.tag-disabled { background: color-mix(in srgb, var(--sf-danger) 16%, transparent); color: var(--sf-danger); }
+
+.details-row-comment {
+    margin: 0.25rem 0 0;
+    color: var(--sf-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.details-legend {
+    flex: none;
+    padding: 0.5rem 0.75rem 0.625rem;
+    border-top: 1px solid var(--sf-border-soft);
+}
+
+.details-legend-title {
+    margin: 0 0 0.375rem;
+    color: var(--sf-faint);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.details-legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3125rem 0.5rem;
+}
+
+.details-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--sf-muted);
+    font-size: 0.6875rem;
+}
+
+.details-legend-glyph {
+    display: inline-flex;
+    flex: none;
+    width: 1rem;
+    align-items: center;
+    justify-content: center;
+    color: var(--legend-color, var(--sf-muted));
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+}
+
+/* ── Details panel: constraints / indexes sub-sections ───────────────────── */
+.details-section {
+    flex: none;
+    max-height: 9rem;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+}
+
+.details-section-title {
+    margin: 0 0 0.3125rem;
+    color: var(--sf-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.details-check-item,
+.details-index-item {
+    padding: 0.25rem 0;
+}
+
+.details-check-name,
+.details-index-name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    color: var(--sf-text);
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+    font-size: 0.75rem;
+}
+
+.details-check-def {
+    margin: 0.125rem 0 0;
+    color: var(--sf-muted);
+    font-family: 'JetBrains Mono', Consolas, ui-monospace, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.details-index-columns {
+    margin-left: auto;
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 68rem) {
+    .details-panel { width: 15rem; }
+}
+
+/* ── Canvas area ──────────────────────────────────────────────────────────── */
+.canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--sf-canvas-bg);
+    cursor: grab;
+}
+
+.canvas-wrap.is-panning {
+    cursor: grabbing;
+}
+
+#erd-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.toolbar {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem;
+    background: var(--sf-pane);
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    z-index: 5;
+}
+
+:root[data-theme="light"] .toolbar {
+    box-shadow: 0 4px 16px rgba(24, 32, 42, 0.12);
+}
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .toolbar {
+        box-shadow: 0 4px 16px rgba(24, 32, 42, 0.12);
+    }
+}
+
+.toolbar-zoom {
+    min-width: 3rem;
+    color: var(--sf-muted);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 1.25rem;
+    background: var(--sf-border);
+}
+
+.minimap-hint {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 6px;
+    background: var(--sf-pane);
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.empty-state {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    color: var(--sf-faint);
+    text-align: center;
+    padding: 1rem;
+}
+
+.empty-state.is-visible {
+    display: flex;
+}
+
+.empty-state h3 {
+    margin: 0;
+    color: var(--sf-muted);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.8125rem;
+    max-width: 24rem;
+}
+
+/* Tooltip that follows the pointer over a table, showing full details for a hovered row. */
+.tooltip {
+    position: absolute;
+    display: none;
+    max-width: 20rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 6px;
+    background: var(--sf-pane);
+    color: var(--sf-text);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 10;
+    word-break: break-word;
+}
+
+.tooltip.is-visible {
+    display: block;
+}
+
+.tooltip strong {
+    color: var(--sf-accent);
+}
+
+@media (max-width: 57.59rem) {
+    .sidebar { width: 12rem; }
+}
+
+.mono {
+    font-family: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+}
+
+/* ── DDL modal ────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 30;
+}
+
+.modal-backdrop.is-visible {
+    display: flex;
+}
+
+.modal {
+    display: flex;
+    flex-direction: column;
+    width: min(48rem, 100%);
+    max-height: 100%;
+    background: var(--sf-pane);
+    border: 1px solid var(--sf-border);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex: none;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+    background: var(--sf-chrome-2);
+}
+
+.modal-title {
+    margin: 0;
+    color: var(--sf-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.modal-subtitle {
+    margin: 0.125rem 0 0;
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+}
+
+.modal-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex: none;
+}
+
+.modal-body {
+    margin: 0;
+    padding: 0.875rem;
+    overflow: auto;
+    color: var(--sf-text);
+    background: var(--sf-canvas-bg);
+    font-family: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    white-space: pre;
+}
+</style>
+</head>
+<body>
+<div class="sf-shell" id="sf-shell">
+    <header class="appbar">
+        <div class="brand">
+            <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <rect x="4" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="19" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="11.5" y="19" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <path d="M8.5 13v3a3 3 0 0 0 3 3h1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+                <path d="M23.5 13v3a3 3 0 0 1-3 3h-1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+            <span class="brand-name">Schema<span class="brand-name-accent">Flex</span></span>
+        </div>
+        <p class="appbar-note" id="schema-note">Offline database ERD viewer.</p>
+        <span class="appbar-spacer"></span>
+        <label class="appbar-search">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <circle cx="7" cy="7" r="4.6"></circle>
+                <path d="M11 11l3.5 3.5"></path>
+            </svg>
+            <input id="search-input" type="text" placeholder="Filter tables…" autocomplete="off" spellcheck="false">
+        </label>
+        <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="4.5"></circle>
+                <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"></path>
+            </svg>
+        </button>
+    </header>
+
+    <div class="sf-body">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-head">
+                <button class="icon-btn" id="sidebar-toggle" title="Collapse tables panel" aria-label="Collapse tables panel" aria-expanded="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+                <div class="sidebar-head-text">
+                    <h2 class="sidebar-title">Tables</h2>
+                    <span class="sidebar-count" id="table-count">0</span>
+                </div>
+            </div>
+            <div class="table-list" id="table-list"></div>
+            <div class="enums-section" id="enums-section" hidden></div>
+            <div class="sidebar-foot" id="schema-foot">&nbsp;</div>
+        </aside>
+
+        <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="erd-canvas"></canvas>
+
+            <div class="empty-state" id="empty-state">
+                <h3>No tables to display</h3>
+                <p>The schema this file was generated from has no base tables, or the embedded
+                   data could not be read. Regenerate the file with SchemaFlex against a
+                   populated schema.</p>
+            </div>
+
+            <div class="tooltip" id="tooltip"></div>
+
+            <div class="toolbar">
+                <button class="icon-btn" id="zoom-out" title="Zoom out" aria-label="Zoom out">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"></circle><path d="M21 21l-4.8-4.8M8 11h6"></path></svg>
+                </button>
+                <span class="toolbar-zoom" id="zoom-label">100%</span>
+                <button class="icon-btn" id="zoom-in" title="Zoom in" aria-label="Zoom in">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"></circle><path d="M21 21l-4.8-4.8M11 8v6M8 11h6"></path></svg>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button class="btn btn-strong" id="fit-view">Fit view</button>
+                <button class="btn btn-strong" id="auto-arrange">Auto-arrange</button>
+                <div class="toolbar-divider"></div>
+                <div class="seg" id="line-style-seg">
+                    <button type="button" data-style="curved" title="Curved connectors">Curved</button>
+                    <button type="button" data-style="straight" class="is-on" title="Straight connectors">Straight</button>
+                    <button type="button" data-style="sketch" title="Hand-drawn connectors">Sketch</button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <button class="btn" id="reset-view">Reset</button>
+                <div class="toolbar-divider"></div>
+                <button class="btn" id="export-png" title="Export the diagram as a PNG image">Export PNG</button>
+                <button class="btn" id="view-ddl" title="View the schema as SQL DDL">View DDL</button>
+            </div>
+
+            <div class="minimap-hint">Scroll to zoom &middot; drag to pan &middot; click a table to focus</div>
+        </div>
+
+        <div class="modal-backdrop" id="ddl-backdrop">
+            <div class="modal" role="dialog" aria-modal="true" aria-label="Schema DDL">
+                <div class="modal-head">
+                    <div>
+                        <h2 class="modal-title">Schema DDL</h2>
+                        <p class="modal-subtitle" id="ddl-subtitle"></p>
+                    </div>
+                    <div class="modal-head-actions">
+                        <button class="btn btn-strong" id="ddl-copy">Copy</button>
+                        <button class="btn btn-strong" id="ddl-download">Download .sql</button>
+                        <button class="icon-btn" id="ddl-close" title="Close" aria-label="Close">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <pre class="modal-body"><code id="ddl-code"></code></pre>
+            </div>
+        </div>
+
+        <aside class="details-panel" id="details-panel">
+            <div class="details-head">
+                <div>
+                    <h2 class="details-title" id="details-title"></h2>
+                    <p class="details-subtitle" id="details-subtitle"></p>
+                </div>
+                <button class="icon-btn" id="details-close" title="Close" aria-label="Close details">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>
+                </button>
+            </div>
+            <p class="details-comment" id="details-comment" hidden></p>
+            <div class="details-section" id="details-checks" hidden>
+                <h3 class="details-section-title">Check constraints</h3>
+                <div id="details-checks-list"></div>
+            </div>
+            <div class="details-section" id="details-indexes" hidden>
+                <h3 class="details-section-title">Indexes</h3>
+                <div id="details-indexes-list"></div>
+            </div>
+            <div class="details-section" id="details-triggers" hidden>
+                <h3 class="details-section-title">Triggers</h3>
+                <div id="details-triggers-list"></div>
+            </div>
+            <div class="details-columns" id="details-columns"></div>
+            <div class="details-legend">
+                <p class="details-legend-title">Diagram icons</p>
+                <div class="details-legend-grid">
+                    <span class="details-legend-item" style="--legend-color: var(--sf-pk)"><span class="details-legend-glyph"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="4" cy="7" r="2.6"></circle><line x1="6.6" y1="7" x2="12" y2="7"></line><line x1="9.5" y1="7" x2="9.5" y2="10"></line><line x1="12" y1="7" x2="12" y2="10"></line></svg></span>Primary key</span>
+                    <span class="details-legend-item" style="--legend-color: var(--sf-fk)"><span class="details-legend-glyph"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="4" cy="7" r="2"></circle><line x1="6" y1="7" x2="12" y2="7"></line><line x1="12" y1="7" x2="12" y2="10"></line></svg></span>Foreign key</span>
+                    <span class="details-legend-item" style="--legend-color: var(--sf-pk)"><span class="details-legend-glyph">&#10003;</span>Has check constraints</span>
+                    <span class="details-legend-item" style="--legend-color: var(--sf-muted)"><span class="details-legend-glyph">&#9636;</span>Has indexes</span>
+                    <span class="details-legend-item" style="--legend-color: var(--sf-fk)"><span class="details-legend-glyph">&#9889;</span>Has triggers</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Injected JSON Payload -->
+<script>
+const schemaData = {"schema":"main","generatedAt":"2026-09-24T22:31:30.443076+00:00","tables":[{"name":"addresses","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"customer_id","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":true,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"line1","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"city","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"postcode","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"is_default","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":true,"default":"0","isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[{"constraintName":"fk_addresses_0","column":"customer_id","refTable":"customers","refColumn":"id","onDelete":"CASCADE","onUpdate":null}],"checkConstraints":[],"indexes":[{"name":"idx_addresses_default","columns":["customer_id","is_default"],"isUnique":true,"method":"btree"}],"triggers":[],"comment":null},{"name":"categories","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"name","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":true,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"parent_id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[{"constraintName":"fk_categories_0","column":"parent_id","refTable":"categories","refColumn":"id","onDelete":null,"onUpdate":null}],"checkConstraints":[],"indexes":[{"name":"sqlite_autoindex_categories_1","columns":["name"],"isUnique":true,"method":"btree"}],"triggers":[],"comment":null},{"name":"customers","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"email","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":true,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"full_name","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"status","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"\u0027active\u0027","isIdentity":false,"generatedExpression":null,"comment":null},{"name":"created_at","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"datetime(\u0027now\u0027)","isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[],"checkConstraints":[{"name":"check_1","definition":"status IN (\u0027active\u0027, \u0027suspended\u0027, \u0027closed\u0027)"}],"indexes":[{"name":"sqlite_autoindex_customers_1","columns":["email"],"isUnique":true,"method":"btree"}],"triggers":[{"name":"trg_customers_no_delete_with_orders","timing":"BEFORE","level":"ROW","events":["DELETE"],"statement":"CREATE TRIGGER trg_customers_no_delete_with_orders\nBEFORE DELETE ON customers\nWHEN EXISTS (SELECT 1 FROM orders WHERE customer_id = OLD.id)\nBEGIN\n    SELECT RAISE(ABORT, \u0027cannot delete customer with existing orders\u0027);\nEND","isEnabled":true}],"comment":null},{"name":"orders","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"customer_id","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"shipping_address_id","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"status","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"\u0027pending\u0027","isIdentity":false,"generatedExpression":null,"comment":null},{"name":"placed_at","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"datetime(\u0027now\u0027)","isIdentity":false,"generatedExpression":null,"comment":null},{"name":"total_cents","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"0","isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[{"constraintName":"fk_orders_0","column":"shipping_address_id","refTable":"addresses","refColumn":"id","onDelete":null,"onUpdate":null},{"constraintName":"fk_orders_1","column":"customer_id","refTable":"customers","refColumn":"id","onDelete":null,"onUpdate":null}],"checkConstraints":[{"name":"check_1","definition":"status IN (\u0027pending\u0027, \u0027paid\u0027, \u0027shipped\u0027, \u0027cancelled\u0027)"}],"indexes":[{"name":"idx_orders_customer","columns":["customer_id"],"isUnique":false,"method":"btree"}],"triggers":[],"comment":null},{"name":"order_items","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"order_id","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"product_id","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"quantity","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"unit_price_cents","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[{"constraintName":"fk_order_items_0","column":"product_id","refTable":"products","refColumn":"id","onDelete":null,"onUpdate":null},{"constraintName":"fk_order_items_1","column":"order_id","refTable":"orders","refColumn":"id","onDelete":"CASCADE","onUpdate":null}],"checkConstraints":[{"name":"check_1","definition":"quantity \u003E 0"}],"indexes":[{"name":"idx_order_items_order","columns":["order_id"],"isUnique":false,"method":"btree"}],"triggers":[{"name":"trg_orders_touch_total","timing":"AFTER","level":"ROW","events":["INSERT","UPDATE"],"statement":"CREATE TRIGGER trg_orders_touch_total\nAFTER INSERT ON order_items\nBEGIN\n    UPDATE orders\n    SET total_cents = (\n        SELECT COALESCE(SUM(quantity * unit_price_cents), 0)\n        FROM order_items WHERE order_id = NEW.order_id\n    )\n    WHERE id = NEW.order_id;\nEND","isEnabled":true}],"comment":null},{"name":"products","columns":[{"name":"id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":true,"isUnique":false,"default":null,"isIdentity":true,"generatedExpression":null,"comment":null},{"name":"sku","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":true,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"name","dataType":"TEXT","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"category_id","dataType":"INTEGER","isNullable":true,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"price_cents","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":null,"isIdentity":false,"generatedExpression":null,"comment":null},{"name":"stock_qty","dataType":"INTEGER","isNullable":false,"isPrimaryKey":false,"isUnique":false,"default":"0","isIdentity":false,"generatedExpression":null,"comment":null}],"foreignKeys":[{"constraintName":"fk_products_0","column":"category_id","refTable":"categories","refColumn":"id","onDelete":null,"onUpdate":null}],"checkConstraints":[{"name":"check_1","definition":"price_cents \u003E= 0"}],"indexes":[{"name":"idx_products_category","columns":["category_id"],"isUnique":false,"method":"btree"},{"name":"sqlite_autoindex_products_1","columns":["sku"],"isUnique":true,"method":"btree"}],"triggers":[],"comment":null}],"enums":[],"provider":"sqlite"};
+</script>
+<script>
+(function () {
+    "use strict";
+
+    // ── Theme ────────────────────────────────────────────────────────────────
+    const THEME_KEY = "schemaflex-theme";
+    const root = document.documentElement;
+
+    function applyStoredTheme() {
+        let stored = null;
+        try { stored = localStorage.getItem(THEME_KEY); } catch (e) { /* storage unavailable */ }
+        if (stored === "light" || stored === "dark") {
+            root.setAttribute("data-theme", stored);
+        }
+    }
+
+    function toggleTheme() {
+        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const current = root.getAttribute("data-theme") || (prefersDark ? "dark" : "light");
+        const next = current === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* storage unavailable */ }
+        scheduleRender();
+    }
+
+    applyStoredTheme();
+    document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+
+    // ── Sidebar collapse ────────────────────────────────────────────────────
+    // Applied here (DOM/class only - no reference to canvas/wrap/ctx, which
+    // aren't declared yet at this point in the script) so the panel is already
+    // in its stored state before the initial resizeCanvas()/render() run below.
+    const SIDEBAR_COLLAPSED_KEY = "schemaflex-sidebar-collapsed";
+    const sidebarEl = document.getElementById("sidebar");
+    const sidebarToggle = document.getElementById("sidebar-toggle");
+
+    function applySidebarCollapsed(collapsed) {
+        sidebarEl.classList.toggle("is-collapsed", collapsed);
+        sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+        sidebarToggle.setAttribute("title", collapsed ? "Expand tables panel" : "Collapse tables panel");
+        sidebarToggle.setAttribute("aria-label", collapsed ? "Expand tables panel" : "Collapse tables panel");
+    }
+
+    let sidebarCollapsedStored = false;
+    try { sidebarCollapsedStored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1"; } catch (e) { /* storage unavailable */ }
+    applySidebarCollapsed(sidebarCollapsedStored);
+
+    sidebarToggle.addEventListener("click", function () {
+        const collapsed = !sidebarEl.classList.contains("is-collapsed");
+        applySidebarCollapsed(collapsed);
+        try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+        resizeCanvas();
+        scheduleRender();
+    });
+
+    // ── Line style ───────────────────────────────────────────────────────────
+    // A global UI preference (like the theme), not part of a schema's saved
+    // layout - it's how the user likes to look at any diagram, not a fact about
+    // this one.
+    const LINE_STYLE_KEY = "schemaflex-line-style";
+    const VALID_LINE_STYLES = ["curved", "straight", "sketch"];
+    let lineStyle = "straight";
+    try {
+        const storedStyle = localStorage.getItem(LINE_STYLE_KEY);
+        if (VALID_LINE_STYLES.indexOf(storedStyle) !== -1) lineStyle = storedStyle;
+    } catch (e) { /* storage unavailable */ }
+
+    // ── Normalize schema data defensively ───────────────────────────────────
+    function normalizeSchema(raw) {
+        const tables = [];
+        if (!raw || typeof raw !== "object" || !Array.isArray(raw.tables)) {
+            return { schema: "", generatedAt: null, tables: tables, enums: [], provider: null };
+        }
+
+        raw.tables.forEach(function (t) {
+            if (!t || typeof t.name !== "string" || !t.name) return;
+            const columns = Array.isArray(t.columns) ? t.columns
+                .filter(function (c) { return c && typeof c.name === "string" && c.name; })
+                .map(function (c) {
+                    return {
+                        name: c.name,
+                        dataType: typeof c.dataType === "string" ? c.dataType : "unknown",
+                        isNullable: !!c.isNullable,
+                        isPrimaryKey: !!c.isPrimaryKey,
+                        isUnique: !!c.isUnique,
+                        default: typeof c.default === "string" && c.default ? c.default : null,
+                        isIdentity: !!c.isIdentity,
+                        generatedExpression: typeof c.generatedExpression === "string" && c.generatedExpression ? c.generatedExpression : null,
+                        comment: typeof c.comment === "string" && c.comment ? c.comment : null
+                    };
+                }) : [];
+
+            const foreignKeys = Array.isArray(t.foreignKeys) ? t.foreignKeys
+                .filter(function (f) { return f && f.column && f.refTable && f.refColumn; })
+                .map(function (f) {
+                    return {
+                        constraintName: typeof f.constraintName === "string" ? f.constraintName : "",
+                        column: f.column,
+                        refTable: f.refTable,
+                        refColumn: f.refColumn,
+                        onDelete: typeof f.onDelete === "string" ? f.onDelete : null,
+                        onUpdate: typeof f.onUpdate === "string" ? f.onUpdate : null
+                    };
+                }) : [];
+
+            const checkConstraints = Array.isArray(t.checkConstraints) ? t.checkConstraints
+                .filter(function (k) { return k && k.name && k.definition; })
+                .map(function (k) { return { name: k.name, definition: k.definition }; }) : [];
+
+            const indexes = Array.isArray(t.indexes) ? t.indexes
+                .filter(function (ix) { return ix && ix.name && Array.isArray(ix.columns); })
+                .map(function (ix) {
+                    return {
+                        name: ix.name,
+                        columns: ix.columns.filter(function (c) { return typeof c === "string"; }),
+                        isUnique: !!ix.isUnique,
+                        method: typeof ix.method === "string" ? ix.method : ""
+                    };
+                }) : [];
+
+            const triggers = Array.isArray(t.triggers) ? t.triggers
+                .filter(function (tg) { return tg && tg.name && Array.isArray(tg.events); })
+                .map(function (tg) {
+                    return {
+                        name: tg.name,
+                        timing: typeof tg.timing === "string" ? tg.timing : "",
+                        level: typeof tg.level === "string" ? tg.level : "",
+                        events: tg.events.filter(function (ev) { return typeof ev === "string"; }),
+                        statement: typeof tg.statement === "string" ? tg.statement : "",
+                        isEnabled: tg.isEnabled !== false
+                    };
+                }) : [];
+
+            tables.push({
+                name: t.name,
+                columns: columns,
+                foreignKeys: foreignKeys,
+                checkConstraints: checkConstraints,
+                indexes: indexes,
+                triggers: triggers,
+                comment: typeof t.comment === "string" && t.comment ? t.comment : null
+            });
+        });
+
+        const enums = Array.isArray(raw.enums) ? raw.enums
+            .filter(function (e) { return e && typeof e.name === "string" && e.name && Array.isArray(e.values); })
+            .map(function (e) {
+                return { name: e.name, values: e.values.filter(function (v) { return typeof v === "string"; }) };
+            }) : [];
+
+        const validProviders = ["postgreSql", "sqlServer", "mySql", "sqlite"];
+
+        return {
+            schema: typeof raw.schema === "string" ? raw.schema : "",
+            generatedAt: typeof raw.generatedAt === "string" ? raw.generatedAt : null,
+            tables: tables,
+            enums: enums,
+            provider: validProviders.indexOf(raw.provider) !== -1 ? raw.provider : null
+        };
+    }
+
+    const schema = normalizeSchema(typeof schemaData !== "undefined" ? schemaData : null);
+
+    document.getElementById("table-count").textContent = String(schema.tables.length);
+    const noteEl = document.getElementById("schema-note");
+    if (schema.schema) {
+        noteEl.textContent = "Schema “" + schema.schema + "” — offline ERD viewer.";
+    }
+    const footEl = document.getElementById("schema-foot");
+    if (schema.generatedAt) {
+        const d = new Date(schema.generatedAt);
+        footEl.textContent = isNaN(d.getTime()) ? "" : "Generated " + d.toLocaleString();
+    }
+
+    // ── DDL generation ───────────────────────────────────────────────────────
+    // Column types are already the exact native type text captured from the source
+    // database (e.g. "varchar(255)", "decimal(10,2)"), so this reconstructs CREATE
+    // TABLE/ALTER TABLE statements in that same dialect rather than translating
+    // across engines - a faithful redocumentation of what's there, not a guess.
+    const DIALECTS = {
+        postgreSql: { label: "PostgreSQL", quote: quoteDouble, identityClause: " GENERATED BY DEFAULT AS IDENTITY" },
+        sqlServer: { label: "SQL Server", quote: quoteBracket, identityClause: " IDENTITY(1,1)" },
+        mySql: { label: "MySQL / MariaDB", quote: quoteBacktick, identityClause: " AUTO_INCREMENT" },
+        sqlite: { label: "SQLite", quote: quoteDouble, identityClause: "" }
+    };
+
+    function quoteDouble(id) { return '"' + String(id).replace(/"/g, '""') + '"'; }
+    function quoteBracket(id) { return "[" + String(id).replace(/]/g, "]]") + "]"; }
+    function quoteBacktick(id) { return "`" + String(id).replace(/`/g, "``") + "`"; }
+
+    function referentialAction(action) {
+        return action ? action.replace(/_/g, " ") : null;
+    }
+
+    function checkClause(definition) {
+        const def = definition.trim();
+        return /^check\b/i.test(def) ? def : "CHECK (" + def + ")";
+    }
+
+    function buildDdl(schemaModel) {
+        const dialect = DIALECTS[schemaModel.provider] || DIALECTS.sqlite;
+        const q = dialect.quote;
+        const sections = [];
+
+        if (schemaModel.provider === "postgreSql" && schemaModel.enums.length > 0) {
+            sections.push(schemaModel.enums.map(function (e) {
+                const values = e.values.map(function (v) { return "'" + v.replace(/'/g, "''") + "'"; }).join(", ");
+                return "CREATE TYPE " + q(e.name) + " AS ENUM (" + values + ");";
+            }).join("\n"));
+        }
+
+        // SQLite has no ALTER TABLE ADD CONSTRAINT at all - foreign keys and check
+        // constraints can only be declared inline on the CREATE TABLE itself, so those
+        // go into colLines instead of a trailing ALTER TABLE section for that dialect.
+        const inlineConstraints = schemaModel.provider === "sqlite";
+        const fkLines = [];
+        const checkLines = [];
+
+        schemaModel.tables.forEach(function (t) {
+            const colLines = t.columns.map(function (c) {
+                // A classic Postgres serial/bigserial column isn't flagged is_identity by
+                // information_schema - it's just an integer column whose default calls
+                // nextval() on a sequence object owned by that column. Reproducing that
+                // default verbatim would reference a sequence that doesn't exist wherever
+                // this DDL actually gets run; GENERATED BY DEFAULT AS IDENTITY is a
+                // self-contained, semantically equivalent replacement that needs nothing
+                // else created alongside it.
+                const isPostgresSerial = schemaModel.provider === "postgreSql" && !c.isIdentity &&
+                    typeof c.default === "string" && /^nextval\(/i.test(c.default);
+                const isIdentity = c.isIdentity || isPostgresSerial;
+
+                // A SQLite column declared with no type at all gets BLOB affinity and
+                // reads back here as "unknown" (there's nothing to report). Writing that
+                // placeholder out as a literal type would instead give the column NUMERIC
+                // affinity (SQLite falls back to NUMERIC for any type name it doesn't
+                // recognize) - a real behavior change, not just a cosmetic one - so the
+                // type is omitted here instead, which reproduces the original BLOB affinity.
+                const omitType = schemaModel.provider === "sqlite" && c.dataType === "unknown";
+
+                let line = "  " + q(c.name) + (omitType ? "" : " " + c.dataType);
+                if (isIdentity) line += dialect.identityClause;
+                if (!c.isNullable) line += " NOT NULL";
+                if (c.isUnique && !c.isPrimaryKey) line += " UNIQUE";
+                if (c.default && !isPostgresSerial) line += " DEFAULT " + c.default;
+                if (c.generatedExpression) line += " GENERATED ALWAYS AS (" + c.generatedExpression + ") STORED";
+                return line;
+            });
+
+            const pkCols = t.columns.filter(function (c) { return c.isPrimaryKey; }).map(function (c) { return c.name; });
+            if (pkCols.length > 0) {
+                colLines.push("  PRIMARY KEY (" + pkCols.map(q).join(", ") + ")");
+            }
+
+            t.foreignKeys.forEach(function (fk) {
+                const name = fk.constraintName || (t.name + "_" + fk.column + "_fkey");
+                let clause = "FOREIGN KEY (" + q(fk.column) + ") REFERENCES " + q(fk.refTable) + " (" + q(fk.refColumn) + ")";
+                const onDelete = referentialAction(fk.onDelete);
+                const onUpdate = referentialAction(fk.onUpdate);
+                if (onDelete) clause += " ON DELETE " + onDelete;
+                if (onUpdate) clause += " ON UPDATE " + onUpdate;
+
+                if (inlineConstraints) {
+                    colLines.push("  CONSTRAINT " + q(name) + " " + clause);
+                } else {
+                    fkLines.push("ALTER TABLE " + q(t.name) + " ADD CONSTRAINT " + q(name) + " " + clause + ";");
+                }
+            });
+
+            t.checkConstraints.forEach(function (c) {
+                const clause = "CONSTRAINT " + q(c.name) + " " + checkClause(c.definition);
+                if (inlineConstraints) {
+                    colLines.push("  " + clause);
+                } else {
+                    checkLines.push("ALTER TABLE " + q(t.name) + " ADD " + clause + ";");
+                }
+            });
+
+            const header = t.comment ? "-- " + t.comment + "\n" : "";
+            sections.push(header + "CREATE TABLE " + q(t.name) + " (\n" + colLines.join(",\n") + "\n);");
+        });
+
+        if (fkLines.length > 0) sections.push(fkLines.join("\n"));
+        if (checkLines.length > 0) sections.push(checkLines.join("\n"));
+
+        const idxLines = [];
+        schemaModel.tables.forEach(function (t) {
+            t.indexes.forEach(function (ix) {
+                const usingClause = schemaModel.provider === "postgreSql" && ix.method && ix.method.toLowerCase() !== "btree"
+                    ? "USING " + ix.method + " "
+                    : "";
+                idxLines.push("CREATE " + (ix.isUnique ? "UNIQUE " : "") + "INDEX " + q(ix.name) + " ON " + q(t.name) + " " +
+                    usingClause + "(" + ix.columns.map(q).join(", ") + ");");
+            });
+        });
+        if (idxLines.length > 0) sections.push(idxLines.join("\n"));
+
+        return sections.join("\n\n") + "\n";
+    }
+
+    const ddlBackdrop = document.getElementById("ddl-backdrop");
+    const ddlCode = document.getElementById("ddl-code");
+    const ddlCopyBtn = document.getElementById("ddl-copy");
+
+    function openDdlModal() {
+        const dialect = DIALECTS[schema.provider] || DIALECTS.sqlite;
+        ddlCode.textContent = buildDdl(schema);
+        document.getElementById("ddl-subtitle").textContent = dialect.label +
+            (schema.schema ? " — schema “" + schema.schema + "”" : "") +
+            " — " + schema.tables.length + " table(s)";
+        ddlCopyBtn.textContent = "Copy";
+        ddlBackdrop.classList.add("is-visible");
+    }
+
+    function closeDdlModal() {
+        ddlBackdrop.classList.remove("is-visible");
+    }
+
+    document.getElementById("view-ddl").addEventListener("click", openDdlModal);
+    document.getElementById("ddl-close").addEventListener("click", closeDdlModal);
+    ddlBackdrop.addEventListener("click", function (e) {
+        if (e.target === ddlBackdrop) closeDdlModal();
+    });
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && ddlBackdrop.classList.contains("is-visible")) closeDdlModal();
+    });
+
+    ddlCopyBtn.addEventListener("click", function () {
+        const text = ddlCode.textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                ddlCopyBtn.textContent = "Copied";
+            }, function () {
+                ddlCopyBtn.textContent = "Copy failed";
+            });
+        } else {
+            const range = document.createRange();
+            range.selectNodeContents(ddlCode);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            ddlCopyBtn.textContent = document.execCommand("copy") ? "Copied" : "Copy failed";
+            selection.removeAllRanges();
+        }
+    });
+
+    document.getElementById("ddl-download").addEventListener("click", function () {
+        const blob = new Blob([ddlCode.textContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const namePart = schema.schema ? schema.schema.replace(/[^a-z0-9-_]+/gi, "-") : "schema";
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "ddl-" + namePart + ".sql";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
+
+    // ── Layout model ─────────────────────────────────────────────────────────
+    const ROW_HEIGHT = 22;
+    const HEADER_HEIGHT = 30;
+    const TABLE_WIDTH = 240;
+    const TABLE_GAP_X = 90;
+    const TABLE_GAP_Y = 70;
+    const PADDING = 14;
+
+    const layoutTables = schema.tables.map(function (t, idx) {
+        return {
+            id: idx,
+            name: t.name,
+            columns: t.columns,
+            foreignKeys: t.foreignKeys,
+            checkConstraints: t.checkConstraints,
+            indexes: t.indexes,
+            triggers: t.triggers,
+            comment: t.comment,
+            x: 0,
+            y: 0,
+            w: TABLE_WIDTH,
+            h: HEADER_HEIGHT + Math.max(1, t.columns.length) * ROW_HEIGHT + PADDING
+        };
+    });
+
+    const tableByName = new Map();
+    layoutTables.forEach(function (t) { tableByName.set(t.name.toLowerCase(), t); });
+
+    const enumByName = new Map();
+    schema.enums.forEach(function (e) { enumByName.set(e.name.toLowerCase(), e); });
+
+    // A small, deterministic string hash (djb2 variant). Used both for the layout
+    // persistence key and to seed each edge's hand-drawn wobble, so the same input
+    // always produces the same number - a redraw never looks different from the
+    // last one just because Math.random() was called again.
+    function hashInt(s) {
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) {
+            h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        }
+        return h >>> 0;
+    }
+
+    function hashString(s) {
+        return hashInt(s).toString(36);
+    }
+
+    // ── Foreign key edges, resolved by name ─────────────────────────────────
+    // e.from is the table that HOLDS the FK column (the "many" side); e.to is the
+    // table it references (the "one" side, via a PK/unique column).
+    const edges = [];
+    layoutTables.forEach(function (t) {
+        t.foreignKeys.forEach(function (fk) {
+            const target = tableByName.get(fk.refTable.toLowerCase());
+            if (!target) return;
+            edges.push({
+                from: t,
+                to: target,
+                fk: fk,
+                sketchSeed: hashInt(t.name + "." + fk.column + "->" + target.name + "." + fk.refColumn + "|" + fk.constraintName)
+            });
+        });
+    });
+
+    // ── Auto-arrange: layered (Sugiyama-style) layout ───────────────────────
+    // Tables are placed in columns ("layers") by dependency depth - a table with no
+    // foreign keys sits in layer 0, and anything referencing it sits at least one
+    // layer to the right - then rows within each layer are reordered by a barycenter
+    // heuristic against their neighbours in the adjacent layer. That second pass is
+    // what actually cuts down edge crossings; the layering alone just stops parents
+    // and children ending up in the same column.
+    function computeLayers() {
+        const adj = new Map();
+        const indegree = new Map();
+        layoutTables.forEach(function (t) {
+            adj.set(t.id, []);
+            indegree.set(t.id, 0);
+        });
+
+        const seen = new Set();
+        edges.forEach(function (e) {
+            if (e.from === e.to) return; // self-reference: doesn't constrain layering
+            const key = e.to.id + "->" + e.from.id;
+            if (seen.has(key)) return;
+            seen.add(key);
+            adj.get(e.to.id).push(e.from.id);
+            indegree.set(e.from.id, indegree.get(e.from.id) + 1);
+        });
+
+        const layer = new Map();
+        layoutTables.forEach(function (t) { layer.set(t.id, 0); });
+
+        const remaining = new Set(layoutTables.map(function (t) { return t.id; }));
+        const localIndegree = new Map(indegree);
+
+        while (remaining.size > 0) {
+            let ready = [];
+            remaining.forEach(function (id) {
+                if (localIndegree.get(id) === 0) ready.push(id);
+            });
+
+            if (ready.length === 0) {
+                // Only nodes on a dependency cycle remain. Break the cycle by forcing
+                // through whichever has the fewest unresolved incoming edges, rather
+                // than getting stuck forever.
+                let best = null;
+                remaining.forEach(function (id) {
+                    if (best === null || localIndegree.get(id) < localIndegree.get(best)) best = id;
+                });
+                ready = [best];
+            }
+
+            ready.forEach(function (id) {
+                remaining.delete(id);
+                adj.get(id).forEach(function (childId) {
+                    if (!remaining.has(childId)) return;
+                    layer.set(childId, Math.max(layer.get(childId), layer.get(id) + 1));
+                    localIndegree.set(childId, Math.max(0, localIndegree.get(childId) - 1));
+                });
+            });
+        }
+
+        return layer;
+    }
+
+    function neighborsInLayer(layerIndexOf, table, targetLayer, edgeList) {
+        const result = [];
+        edgeList.forEach(function (e) {
+            if (e.from === e.to) return;
+            if (e.from === table && layerIndexOf.get(e.to.id) === targetLayer) result.push(e.to);
+            if (e.to === table && layerIndexOf.get(e.from.id) === targetLayer) result.push(e.from);
+        });
+        return result;
+    }
+
+    function orderLayers(layers, edgeList) {
+        const layerIndexOf = new Map();
+        layers.forEach(function (layerArr, li) {
+            layerArr.forEach(function (t) { layerIndexOf.set(t.id, li); });
+        });
+
+        const positionOf = new Map();
+        function refreshPositions() {
+            layers.forEach(function (layerArr) {
+                layerArr.forEach(function (t, i) { positionOf.set(t.id, i); });
+            });
+        }
+        refreshPositions();
+
+        const ITERATIONS = 6;
+        for (let iter = 0; iter < ITERATIONS; iter++) {
+            const downward = iter % 2 === 0;
+            const indices = [];
+            for (let i = 0; i < layers.length; i++) indices.push(i);
+            const order = downward ? indices.slice(1) : indices.slice(0, -1).reverse();
+
+            order.forEach(function (li) {
+                const refLi = downward ? li - 1 : li + 1;
+                const scored = layers[li].map(function (t) {
+                    const neighbors = neighborsInLayer(layerIndexOf, t, refLi, edgeList);
+                    if (neighbors.length === 0) return { t: t, key: positionOf.get(t.id) };
+                    const sum = neighbors.reduce(function (acc, n) { return acc + positionOf.get(n.id); }, 0);
+                    return { t: t, key: sum / neighbors.length };
+                });
+                scored.sort(function (a, b) { return a.key - b.key; });
+                layers[li] = scored.map(function (s) { return s.t; });
+                layers[li].forEach(function (t, i) { positionOf.set(t.id, i); });
+            });
+        }
+    }
+
+    function assignCoordinates(layers) {
+        let x = 0;
+        layers.forEach(function (layerArr) {
+            let y = 0;
+            let maxWidth = TABLE_WIDTH;
+            layerArr.forEach(function (t) { maxWidth = Math.max(maxWidth, t.w); });
+
+            layerArr.forEach(function (t) {
+                t.x = x;
+                t.y = y;
+                y += t.h + TABLE_GAP_Y;
+            });
+            x += maxWidth + TABLE_GAP_X;
+        });
+    }
+
+    function autoArrange() {
+        if (layoutTables.length === 0) return;
+
+        const layerOf = computeLayers();
+        let maxLayer = 0;
+        layerOf.forEach(function (l) { maxLayer = Math.max(maxLayer, l); });
+
+        const layers = [];
+        for (let i = 0; i <= maxLayer; i++) layers.push([]);
+        layoutTables.forEach(function (t) { layers[layerOf.get(t.id)].push(t); });
+
+        // An edge that skips over one or more layers (a table referencing
+        // something two-plus layers away) never shows up in any individual
+        // layer's neighbour calculation, which only looks at *adjacent* layers.
+        // A table sitting alone in one of the skipped layers - "orders" between
+        // "products" and "order_items", say - has nothing pulling it clear of
+        // that edge's path, so it can end up positioned squarely across it.
+        // Standard fix for exactly this in layered graph drawing: a chain of
+        // dummy nodes, one per skipped layer, wired into ordering the same as a
+        // real edge, so real tables sharing that layer get pushed out of the
+        // way. Dummies exist only for this layout pass - never rendered, never
+        // added to layoutTables - and are zero-width so they don't affect
+        // column spacing, just row position within a layer.
+        const DUMMY_HEIGHT = 40;
+        let dummySeq = 0;
+        const orderingEdges = [];
+        edges.forEach(function (e) {
+            if (e.from === e.to) return;
+            const fromLayer = layerOf.get(e.from.id);
+            const toLayer = layerOf.get(e.to.id);
+            const lo = Math.min(fromLayer, toLayer);
+            const hi = Math.max(fromLayer, toLayer);
+            let lowEnd = fromLayer <= toLayer ? e.from : e.to;
+            const highEnd = fromLayer <= toLayer ? e.to : e.from;
+
+            for (let li = lo + 1; li < hi; li++) {
+                const dummy = { id: "dummy" + (dummySeq++), x: 0, y: 0, w: 0, h: DUMMY_HEIGHT };
+                layers[li].push(dummy);
+                orderingEdges.push({ from: lowEnd, to: dummy });
+                lowEnd = dummy;
+            }
+            orderingEdges.push({ from: lowEnd, to: highEnd });
+        });
+
+        orderLayers(layers, orderingEdges);
+        assignCoordinates(layers);
+    }
+
+    autoArrange();
+
+    // ── Persisted layout ─────────────────────────────────────────────────────
+    // A user who drags tables around, or auto-arranges, expects that arrangement
+    // to still be there next time they open this same generated file - so table
+    // positions and the viewport are saved to localStorage, keyed to a fingerprint
+    // of this schema's table names so a different generated file (a different
+    // database, or a later regeneration with a different table set) never inherits
+    // another file's stale positions.
+    const layoutFingerprint = schema.schema + "|" + layoutTables.map(function (t) { return t.name.toLowerCase(); }).sort().join(",");
+    const LAYOUT_KEY = "schemaflex-layout-" + hashString(layoutFingerprint);
+
+    function loadSavedLayout() {
+        try {
+            const raw = localStorage.getItem(LAYOUT_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return (data && typeof data === "object") ? data : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    let saveLayoutTimer = null;
+    function saveLayoutNow() {
+        try {
+            const positions = {};
+            layoutTables.forEach(function (t) { positions[t.name.toLowerCase()] = { x: t.x, y: t.y }; });
+            localStorage.setItem(LAYOUT_KEY, JSON.stringify({
+                positions: positions,
+                view: { x: viewX, y: viewY, scale: viewScale }
+            }));
+        } catch (e) {
+            // Storage unavailable (private browsing, quota, etc.) - the layout just
+            // isn't remembered next time; nothing else depends on it.
+        }
+    }
+
+    function scheduleSaveLayout() {
+        if (saveLayoutTimer) clearTimeout(saveLayoutTimer);
+        saveLayoutTimer = setTimeout(saveLayoutNow, 400);
+    }
+
+    const savedLayout = loadSavedLayout();
+    if (savedLayout && savedLayout.positions) {
+        layoutTables.forEach(function (t) {
+            const p = savedLayout.positions[t.name.toLowerCase()];
+            if (p && typeof p.x === "number" && typeof p.y === "number") {
+                t.x = p.x;
+                t.y = p.y;
+            }
+        });
+    }
+
+    // ── Canvas / viewport ────────────────────────────────────────────────────
+    const wrap = document.getElementById("canvas-wrap");
+    const canvas = document.getElementById("erd-canvas");
+    const ctx = canvas.getContext("2d");
+    const emptyState = document.getElementById("empty-state");
+    const tooltip = document.getElementById("tooltip");
+
+    if (layoutTables.length === 0) {
+        emptyState.classList.add("is-visible");
+    }
+
+    let dpr = window.devicePixelRatio || 1;
+    let viewScale = 1;
+    let viewX = 0;
+    let viewY = 0;
+    let hoverTable = null;
+    let activeTable = null;
+    let hoverEdge = null;
+    let filterText = "";
+    let renderQueued = false;
+
+    let hasSavedView = false;
+    if (savedLayout && savedLayout.view &&
+        typeof savedLayout.view.x === "number" && typeof savedLayout.view.y === "number" && typeof savedLayout.view.scale === "number") {
+        viewX = savedLayout.view.x;
+        viewY = savedLayout.view.y;
+        viewScale = savedLayout.view.scale;
+        hasSavedView = true;
+    }
+
+    function cssColor(name) {
+        return getComputedStyle(root).getPropertyValue(name).trim();
+    }
+
+    function resizeCanvas() {
+        dpr = window.devicePixelRatio || 1;
+        const rect = wrap.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        canvas.style.width = rect.width + "px";
+        canvas.style.height = rect.height + "px";
+        scheduleRender();
+    }
+
+    function worldToScreen(x, y) {
+        return { x: (x - viewX) * viewScale, y: (y - viewY) * viewScale };
+    }
+
+    function screenToWorld(x, y) {
+        return { x: x / viewScale + viewX, y: y / viewScale + viewY };
+    }
+
+    function contentBounds() {
+        if (layoutTables.length === 0) {
+            return { minX: 0, minY: 0, maxX: 800, maxY: 600 };
+        }
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        layoutTables.forEach(function (t) {
+            minX = Math.min(minX, t.x);
+            minY = Math.min(minY, t.y);
+            maxX = Math.max(maxX, t.x + t.w);
+            maxY = Math.max(maxY, t.y + t.h);
+        });
+        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+    }
+
+    function fitView() {
+        const rect = wrap.getBoundingClientRect();
+        const b = contentBounds();
+        const w = Math.max(1, b.maxX - b.minX);
+        const h = Math.max(1, b.maxY - b.minY);
+        const margin = 60;
+        const scaleX = (rect.width - margin * 2) / w;
+        const scaleY = (rect.height - margin * 2) / h;
+        viewScale = Math.max(0.1, Math.min(2, Math.min(scaleX, scaleY)));
+        viewX = b.minX - (rect.width / viewScale - w) / 2;
+        viewY = b.minY - (rect.height / viewScale - h) / 2;
+        updateZoomLabel();
+        scheduleRender();
+        scheduleSaveLayout();
+    }
+
+    function exportPng() {
+        const b = contentBounds();
+        const margin = 60;
+        const w = Math.max(1, (b.maxX - b.minX) + margin * 2);
+        const h = Math.max(1, (b.maxY - b.minY) + margin * 2);
+        const exportDpr = 2;
+
+        const savedViewX = viewX, savedViewY = viewY, savedViewScale = viewScale;
+        const savedWidth = canvas.width, savedHeight = canvas.height;
+        const savedStyleWidth = canvas.style.width, savedStyleHeight = canvas.style.height;
+
+        viewX = b.minX - margin;
+        viewY = b.minY - margin;
+        viewScale = 1;
+        canvas.width = Math.round(w * exportDpr);
+        canvas.height = Math.round(h * exportDpr);
+
+        // Runs synchronously before the browser repaints, so the canvas never
+        // actually flashes at this off-screen size - toDataURL happens, then
+        // everything below restores the live view in the same task.
+        render({ rect: { width: w, height: h }, dpr: exportDpr });
+
+        let dataUrl;
+        try {
+            dataUrl = canvas.toDataURL("image/png");
+        } finally {
+            viewX = savedViewX;
+            viewY = savedViewY;
+            viewScale = savedViewScale;
+            canvas.width = savedWidth;
+            canvas.height = savedHeight;
+            canvas.style.width = savedStyleWidth;
+            canvas.style.height = savedStyleHeight;
+            scheduleRender();
+        }
+
+        if (!dataUrl || dataUrl === "data:,") return;
+
+        const namePart = schema.schema ? schema.schema.replace(/[^a-z0-9-_]+/gi, "-") : "erd";
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = "erd-" + namePart + ".png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function updateZoomLabel() {
+        document.getElementById("zoom-label").textContent = Math.round(viewScale * 100) + "%";
+    }
+
+    function zoomAt(factor, screenX, screenY) {
+        const before = screenToWorld(screenX, screenY);
+        viewScale = Math.max(0.15, Math.min(3, viewScale * factor));
+        const after = screenToWorld(screenX, screenY);
+        viewX += before.x - after.x;
+        viewY += before.y - after.y;
+        updateZoomLabel();
+        scheduleRender();
+        scheduleSaveLayout();
+    }
+
+    function scheduleRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        requestAnimationFrame(function () {
+            renderQueued = false;
+            render();
+        });
+    }
+
+    function edgePoint(table, columnName, side) {
+        const idx = table.columns.findIndex(function (c) { return c.name === columnName; });
+        const rowIdx = idx >= 0 ? idx : 0;
+        const y = table.y + HEADER_HEIGHT + rowIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
+        const x = side === "left" ? table.x : table.x + table.w;
+        return { x: x, y: y };
+    }
+
+    // Shared by rendering and hit-testing so the drawn curve and the "am I hovering
+    // it" check never disagree. Anchors sit on whichever side of each table faces
+    // the other, and the control points are pulled straight out horizontally, which
+    // is also what makes the crow's-foot / one marks (drawn along that horizontal
+    // tangent) sit flush against the connection.
+    //
+    // A self-reference (e.from === e.to) can't use that "faces the other table"
+    // logic - there's only one table - so both ends anchor on its left side and
+    // the control points are pulled out into a loop that stays well clear of the
+    // table's own bounding box. Without this, the straight/curved paths below
+    // would route directly through the table and be drawn first (edges are drawn
+    // under tables), leaving only a stub visible where it pokes out from a corner.
+    function edgeGeometry(e) {
+        if (e.from === e.to) {
+            const t = e.from;
+            const start = edgePoint(t, e.fk.column, "left");
+            const end = edgePoint(t, e.fk.refColumn, "left");
+            const loopOut = 34;
+            const cp1 = { x: t.x - loopOut, y: start.y };
+            const cp2 = { x: t.x - loopOut, y: end.y };
+            return { start: start, end: end, cp1: cp1, cp2: cp2, dirStart: -1, dirEnd: -1, selfRef: true };
+        }
+
+        const goingRight = e.to.x >= e.from.x;
+        const start = edgePoint(e.from, e.fk.column, goingRight ? "right" : "left");
+        const end = edgePoint(e.to, e.fk.refColumn, goingRight ? "left" : "right");
+        const dx = Math.max(50, Math.abs(end.x - start.x) * 0.5);
+        const cp1 = { x: start.x + (goingRight ? dx : -dx), y: start.y };
+        const cp2 = { x: end.x + (goingRight ? -dx : dx), y: end.y };
+        const dirStart = goingRight ? 1 : -1;
+        const dirEnd = -dirStart;
+        return { start: start, end: end, cp1: cp1, cp2: cp2, dirStart: dirStart, dirEnd: dirEnd, selfRef: false };
+    }
+
+
+    // Finds a table (other than the edge's own two endpoints) whose bounding box
+    // the given axis-aligned segment actually crosses. Used to keep orthogonal
+    // routing from drawing a line under a table it doesn't connect to - which,
+    // since edges are drawn before tables, would otherwise just look like the
+    // line vanishes into one side of the box and never comes out the other.
+    function blockerForSegment(a, b, exclude) {
+        const xLo = Math.min(a.x, b.x), xHi = Math.max(a.x, b.x);
+        const yLo = Math.min(a.y, b.y), yHi = Math.max(a.y, b.y);
+        for (let i = 0; i < layoutTables.length; i++) {
+            const t = layoutTables[i];
+            if (t === exclude.from || t === exclude.to) continue;
+            if (xHi > t.x && xLo < t.x + t.w && yHi > t.y && yLo < t.y + t.h) return t;
+        }
+        return null;
+    }
+
+    // Replaces one blocked segment with a detour around the blocking table: a
+    // horizontal run detours vertically (above or below, whichever is closer),
+    // a vertical run detours horizontally (left or right) - the same "go around
+    // on the nearer side" idea the old midpoint-only version used, just applied
+    // to whichever segment actually hit something.
+    // `g` (the edge's overall start/end, before any detouring) is used only to
+    // pick which side to detour on: whichever side is closer to wherever this
+    // segment is ultimately headed, not just closer to its own current position.
+    // Without that, a detour naturally "closer" to a table near the top or
+    // bottom of the whole diagram tends to bulge out past the edge of everything
+    // rather than through the gap between the next row - technically obstacle
+    // -free either way, but a much longer and stranger-looking route.
+    function detourSegment(a, b, blocker, margin, g) {
+        if (a.y === b.y) {
+            const goingRight = b.x >= a.x;
+            const enterX = goingRight ? Math.max(a.x, blocker.x - margin) : Math.min(a.x, blocker.x + blocker.w + margin);
+            const exitX = goingRight ? Math.min(b.x, blocker.x + blocker.w + margin) : Math.max(b.x, blocker.x - margin);
+            const topY = blocker.y - margin, bottomY = blocker.y + blocker.h + margin;
+            const targetY = a.y === g.end.y ? g.start.y : g.end.y;
+            const detourY = Math.abs(topY - targetY) <= Math.abs(bottomY - targetY) ? topY : bottomY;
+            return [a, { x: enterX, y: a.y }, { x: enterX, y: detourY }, { x: exitX, y: detourY }, { x: exitX, y: b.y }, b];
+        }
+
+        const goingDown = b.y >= a.y;
+        const enterY = goingDown ? Math.max(a.y, blocker.y - margin) : Math.min(a.y, blocker.y + blocker.h + margin);
+        const exitY = goingDown ? Math.min(b.y, blocker.y + blocker.h + margin) : Math.max(b.y, blocker.y - margin);
+        const leftX = blocker.x - margin, rightX = blocker.x + blocker.w + margin;
+        const targetX = a.x === g.end.x ? g.start.x : g.end.x;
+        const detourX = Math.abs(leftX - targetX) <= Math.abs(rightX - targetX) ? leftX : rightX;
+        return [a, { x: a.x, y: enterY }, { x: detourX, y: enterY }, { x: detourX, y: exitY }, { x: a.x, y: exitY }, b];
+    }
+
+    // Walks the whole path re-detouring around whatever it hits, segment by
+    // segment, until nothing's blocked or the iteration budget runs out (a
+    // hard cap rather than a true fixed point - dense, adversarial layouts
+    // could in principle oscillate, and a slightly-imperfect route beats a
+    // frozen tab).
+    function routeAroundBlockers(points, exclude, g) {
+        const margin = 10;
+        let pts = points;
+        for (let iter = 0; iter < 16; iter++) {
+            let blocked = false;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const blocker = blockerForSegment(pts[i], pts[i + 1], exclude);
+                if (blocker) {
+                    const detour = detourSegment(pts[i], pts[i + 1], blocker, margin, g);
+                    pts = pts.slice(0, i).concat(detour, pts.slice(i + 2));
+                    blocked = true;
+                    break;
+                }
+            }
+            if (!blocked) break;
+        }
+
+        // A detour's exit point can coincide with the next original waypoint
+        // (e.g. when it already lands clear of the blocker) - drop the resulting
+        // zero-length duplicate segment rather than stroke it as a no-op lineTo.
+        const deduped = [pts[0]];
+        for (let i = 1; i < pts.length; i++) {
+            const prev = deduped[deduped.length - 1];
+            if (pts[i].x !== prev.x || pts[i].y !== prev.y) deduped.push(pts[i]);
+        }
+
+        // A detour also leaves the original mid-crossing waypoint in place, which
+        // the next segment then has to travel back past to reach - e.g. jog down
+        // into a clear gap, then back up to the old crossing height, then down
+        // again to the actual destination. Drop any waypoint whose neighbours are
+        // already axis-aligned with each other and can be joined directly without
+        // crossing anything, which straightens exactly that kind of detour-then-
+        // retrace without needing to know it came from one.
+        let simplified = deduped;
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (let i = 1; i < simplified.length - 1; i++) {
+                const p0 = simplified[i - 1], p2 = simplified[i + 1];
+                if ((p0.x === p2.x || p0.y === p2.y) && !blockerForSegment(p0, p2, exclude)) {
+                    simplified = simplified.slice(0, i).concat(simplified.slice(i + 1));
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        return simplified;
+    }
+
+    // Orthogonal ("straight") connector: a right-angle elbow, not a diagonal line -
+    // out from the table, across at the midpoint, into the other one - then routed
+    // around any table that elbow would otherwise cross (see routeAroundBlockers;
+    // this covers the horizontal runs too, not just the vertical crossing, so a
+    // table sitting between two others in a different layer doesn't get a line
+    // drawn straight through it).
+    function orthogonalPath(e, g) {
+        let midX = (g.start.x + g.end.x) / 2;
+
+        // Keep the crossing within the band the cardinality stubs already clear,
+        // so a very close pair of tables doesn't fold the elbow back on itself.
+        const loBound = Math.min(g.cp1.x, g.cp2.x);
+        const hiBound = Math.max(g.cp1.x, g.cp2.x);
+        midX = Math.max(loBound, Math.min(hiBound, midX));
+
+        // Pre-clear the shared crossing X of any table along the FULL vertical
+        // corridor between start and end, before routing around individual
+        // segments below. This matters because that corridor spans both
+        // horizontal runs too (they end at this X) - if a blocker's column sat
+        // under the crossing point itself, a blocker can't be routed around by
+        // jogging a horizontal run's Y alone, since the run's own endpoint would
+        // still be inside the blocker's footprint.
+        const yLo = Math.min(g.start.y, g.end.y);
+        const yHi = Math.max(g.start.y, g.end.y);
+        for (let attempt = 0; attempt < 6; attempt++) {
+            let blocker = null;
+            for (let i = 0; i < layoutTables.length; i++) {
+                const t = layoutTables[i];
+                if (t === e.from || t === e.to) continue;
+                if (midX > t.x && midX < t.x + t.w && yHi > t.y && yLo < t.y + t.h) {
+                    blocker = t;
+                    break;
+                }
+            }
+            if (!blocker) break;
+            const leftOption = blocker.x - 10;
+            const rightOption = blocker.x + blocker.w + 10;
+            midX = Math.abs(leftOption - midX) <= Math.abs(rightOption - midX) ? leftOption : rightOption;
+        }
+
+        const initial = [g.start, { x: midX, y: g.start.y }, { x: midX, y: g.end.y }, g.end];
+        return routeAroundBlockers(initial, e, g);
+    }
+
+    // All three line styles now share the same obstacle-avoiding route
+    // (orthogonalPath) - they only differ in how that route is *drawn* (see the
+    // render loop below) - so hit-testing against it is style-independent too.
+    function edgePathPoints(e, g) {
+        return orthogonalPath(e, g);
+    }
+
+    function distanceToSegment(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const lenSq = dx * dx + dy * dy;
+        let t = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
+        t = Math.max(0, Math.min(1, t));
+        const cx = x1 + t * dx, cy = y1 + t * dy;
+        return Math.hypot(px - cx, py - cy);
+    }
+
+    // Nearest edge to a world-space point, within a screen-space pixel threshold -
+    // used to hover a relationship line and show what it actually joins. Uses the
+    // same path the current line style draws (sketch hovers against its smooth
+    // skeleton rather than the wobble, which is a fine approximation).
+    function findEdgeNear(worldX, worldY, screenThreshold) {
+        const threshold = screenThreshold / viewScale;
+        let best = null;
+        let bestDist = threshold;
+
+        edges.forEach(function (e) {
+            const points = edgePathPoints(e, edgeGeometry(e));
+            let prev = points[0];
+            for (let i = 1; i < points.length; i++) {
+                const pt = points[i];
+                const d = distanceToSegment(worldX, worldY, prev.x, prev.y, pt.x, pt.y);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = e;
+                }
+                prev = pt;
+            }
+        });
+
+        return best;
+    }
+
+    // Deterministic PRNG (mulberry32) seeded per edge, so the hand-drawn wobble is
+    // stable across redraws - a straight recompute from the same seed reproduces
+    // the same "random" jitter, rather than the line boiling every frame the way a
+    // fresh Math.random() call each render would cause.
+    function mulberry32(seed) {
+        let t = seed >>> 0;
+        return function () {
+            t += 0x6D2B79F5;
+            let r = Math.imul(t ^ (t >>> 15), t | 1);
+            r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+            return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    // Rough.js-style hand-drawn stroke: two overlapping passes over the same base
+    // path, each nudging the interior points by a small deterministic amount. The
+    // anchors (first/last point) are left untouched so cardinality marks still line
+    // up exactly with the table border.
+    function drawSketchPath(points, seed) {
+        const rand = mulberry32(seed);
+        const roughness = 2.5 / viewScale;
+
+        for (let pass = 0; pass < 2; pass++) {
+            ctx.beginPath();
+            points.forEach(function (pt, i) {
+                let x = pt.x, y = pt.y;
+                if (i > 0 && i < points.length - 1) {
+                    x += (rand() - 0.5) * roughness;
+                    y += (rand() - 0.5) * roughness;
+                }
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+    }
+
+    // Splits every segment of a polyline into shorter pieces (never longer than
+    // maxLength) without changing its shape. "Sketch" mode wobbles individual
+    // points, so it needs enough of them along each run for the roughness to
+    // read as hand-drawn the whole way rather than just at the corners.
+    function densifyPolyline(points, maxLength) {
+        const out = [points[0]];
+        for (let i = 1; i < points.length; i++) {
+            const prev = points[i - 1], curr = points[i];
+            const dist = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+            const steps = Math.max(1, Math.ceil(dist / maxLength));
+            for (let s = 1; s <= steps; s++) {
+                const t = s / steps;
+                out.push({ x: prev.x + (curr.x - prev.x) * t, y: prev.y + (curr.y - prev.y) * t });
+            }
+        }
+        return out;
+    }
+
+    // "Curved" mode: the same routed polyline as straight mode, with each
+    // interior corner replaced by a small arc instead of a sharp right angle.
+    // The first and last points are untouched (plain moveTo/lineTo), so the
+    // cardinality marks - which anchor to those exact points and a fixed
+    // horizontal direction - still line up correctly regardless of how soft
+    // the corners further along the line are.
+    function strokeRoundedPolyline(points, radius) {
+        if (points.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 1; i++) {
+            const prev = points[i - 1], curr = points[i], next = points[i + 1];
+            // Clamp the radius to half of whichever adjacent segment is shorter,
+            // so a tight elbow (a detour close behind another) rounds smoothly
+            // instead of the arc overshooting past the corner entirely.
+            const segIn = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+            const segOut = Math.hypot(next.x - curr.x, next.y - curr.y);
+            const r = Math.min(radius, segIn / 2, segOut / 2);
+            ctx.arcTo(curr.x, curr.y, next.x, next.y, r);
+        }
+        ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        ctx.stroke();
+    }
+
+    // Primary-key row marker: a small key silhouette (bow + shaft + teeth), the
+    // one column icon with a genuinely near-universal ERD convention. Hand-drawn
+    // with canvas paths rather than the 🔑 emoji glyph - color emoji ignore
+    // fillStyle and render as a fixed, platform-dependent bitmap, which would be
+    // the only icon in the diagram that doesn't follow the light/dark theme.
+    function drawKeyIcon(x, y, color) {
+        const s = 1 / viewScale;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.3 * s;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        ctx.beginPath();
+        ctx.arc(x + 2.6, y, 2.6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + 5.4, y);
+        ctx.lineTo(x + 11, y);
+        ctx.moveTo(x + 8.5, y);
+        ctx.lineTo(x + 8.5, y + 3);
+        ctx.moveTo(x + 11, y);
+        ctx.lineTo(x + 11, y + 3);
+        ctx.stroke();
+    }
+
+    // Foreign-key row marker: the same key silhouette, but with a smaller bow
+    // and a single tooth instead of two, so an FK column reads as "a key, but
+    // not this table's key" at a glance rather than being confused with the PK.
+    function drawFkKeyIcon(x, y, color) {
+        const s = 1 / viewScale;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.3 * s;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        ctx.beginPath();
+        ctx.arc(x + 2.6, y, 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + 4.6, y);
+        ctx.lineTo(x + 11, y);
+        ctx.moveTo(x + 11, y);
+        ctx.lineTo(x + 11, y + 3);
+        ctx.stroke();
+    }
+
+    // Draws the crow's-foot ("many") or double-bar ("one") cardinality mark at one
+    // end of a relationship line. `dir` is +1/-1 for which way the mark should point
+    // to stay outside the table it sits against.
+    function drawCardinalityMark(x, y, dir, isMany, mandatory, color) {
+        const s = 1 / viewScale;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.4 * s;
+        ctx.lineCap = "round";
+
+        if (isMany) {
+            if (mandatory) {
+                const barX = x + dir * 6 * s;
+                ctx.beginPath();
+                ctx.moveTo(barX, y - 5 * s);
+                ctx.lineTo(barX, y + 5 * s);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(x + dir * 6 * s, y, 4 * s, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            const apexX = x + dir * 12 * s;
+            const tipX = x + dir * 23 * s;
+            ctx.beginPath();
+            ctx.moveTo(apexX, y);
+            ctx.lineTo(tipX, y - 6.5 * s);
+            ctx.moveTo(apexX, y);
+            ctx.lineTo(tipX, y);
+            ctx.moveTo(apexX, y);
+            ctx.lineTo(tipX, y + 6.5 * s);
+            ctx.stroke();
+        } else {
+            [6, 11].forEach(function (offset) {
+                const barX = x + dir * offset * s;
+                ctx.beginPath();
+                ctx.moveTo(barX, y - 5 * s);
+                ctx.lineTo(barX, y + 5 * s);
+                ctx.stroke();
+            });
+        }
+    }
+
+    function drawRoundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    function render(overrides) {
+        const rect = overrides ? overrides.rect : wrap.getBoundingClientRect();
+        const renderDpr = overrides ? overrides.dpr : dpr;
+        ctx.setTransform(renderDpr, 0, 0, renderDpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        const bg = cssColor("--sf-canvas-bg");
+        const dot = cssColor("--sf-canvas-dot");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        // Dotted grid, spaced so it stays legible whatever the zoom level.
+        const gridSize = 32 * viewScale;
+        if (gridSize > 6) {
+            const offX = (-viewX * viewScale) % gridSize;
+            const offY = (-viewY * viewScale) % gridSize;
+            ctx.fillStyle = dot;
+            for (let gx = offX; gx < rect.width; gx += gridSize) {
+                for (let gy = offY; gy < rect.height; gy += gridSize) {
+                    ctx.fillRect(gx, gy, 1, 1);
+                }
+            }
+        }
+
+        if (layoutTables.length === 0) {
+            return;
+        }
+
+        ctx.save();
+        ctx.translate(-viewX * viewScale, -viewY * viewScale);
+        ctx.scale(viewScale, viewScale);
+
+        const edgeColor = cssColor("--sf-edge");
+        const edgeHot = cssColor("--sf-edge-hot");
+        const textColor = cssColor("--sf-text");
+        const mutedColor = cssColor("--sf-muted");
+        const faintColor = cssColor("--sf-faint");
+        const pkColor = cssColor("--sf-pk");
+        const fkColor = cssColor("--sf-fk");
+        const enumColor = cssColor("--sf-enum");
+        const paneColor = cssColor("--sf-pane");
+        const headColor = cssColor("--sf-table-head");
+        const borderColor = cssColor("--sf-border");
+        const rowAltColor = cssColor("--sf-table-row-alt");
+        const accentColor = cssColor("--sf-accent");
+
+        // Edges first, under the tables.
+        edges.forEach(function (e) {
+            const highlighted = hoverEdge === e || hoverTable === e.from || hoverTable === e.to || activeTable === e.from || activeTable === e.to;
+            const g = edgeGeometry(e);
+            const lineColor = highlighted ? edgeHot : edgeColor;
+
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = (highlighted ? 2 : 1.4) / viewScale;
+            ctx.lineJoin = lineStyle === "straight" ? "miter" : "round";
+            ctx.lineCap = "round";
+            ctx.globalAlpha = highlighted ? 1 : 0.6;
+
+            // All three styles follow the same obstacle-avoiding route - they
+            // only differ in how it's drawn: straight strokes it as-is, curved
+            // rounds the corners, sketch densifies it and wobbles the result.
+            const routedPoints = orthogonalPath(e, g);
+            if (lineStyle === "straight") {
+                ctx.beginPath();
+                routedPoints.forEach(function (pt, i) {
+                    if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.stroke();
+            } else if (lineStyle === "sketch") {
+                drawSketchPath(densifyPolyline(routedPoints, 16), e.sketchSeed);
+            } else {
+                strokeRoundedPolyline(routedPoints, 14);
+            }
+
+            ctx.globalAlpha = 1;
+
+            // Crow's foot at the FK ("many") end; a nullable FK column gets a circle
+            // (zero-or-many) instead of a bar (one-or-many). A double bar at the
+            // referenced ("one") end, since a PK/unique column is always exactly one.
+            const fkColumn = e.from.columns.find(function (c) { return c.name === e.fk.column; });
+            const mandatory = !fkColumn || !fkColumn.isNullable;
+            drawCardinalityMark(g.start.x, g.start.y, g.dirStart, true, mandatory, lineColor);
+            drawCardinalityMark(g.end.x, g.end.y, g.dirEnd, false, true, lineColor);
+        });
+
+        layoutTables.forEach(function (t) {
+            const matchesFilter = !filterText || t.name.toLowerCase().indexOf(filterText) !== -1;
+            const isDimmed = filterText && !matchesFilter;
+            const isActive = t === activeTable;
+            const isHover = t === hoverTable;
+
+            ctx.globalAlpha = isDimmed ? 0.25 : 1;
+
+            drawRoundedRect(t.x, t.y, t.w, t.h, 8);
+            ctx.fillStyle = paneColor;
+            ctx.fill();
+
+            // Header - filled before the outer border below, so the border stroke
+            // is drawn last and stays a consistent color all the way around the
+            // card instead of being painted over along the top edge.
+            ctx.save();
+            drawRoundedRect(t.x, t.y, t.w, HEADER_HEIGHT, 8);
+            ctx.clip();
+            ctx.fillStyle = headColor;
+            ctx.fillRect(t.x, t.y, t.w, HEADER_HEIGHT);
+            ctx.restore();
+
+            drawRoundedRect(t.x, t.y, t.w, t.h, 8);
+            ctx.lineWidth = (isActive || isHover ? 2 : 1) / viewScale;
+            ctx.strokeStyle = isActive || isHover ? accentColor : borderColor;
+            ctx.stroke();
+
+            ctx.fillStyle = textColor;
+            ctx.font = "600 13px 'Inter', system-ui, sans-serif";
+            ctx.textBaseline = "middle";
+            ctx.textAlign = "left";
+            ctx.fillText(t.name, t.x + 10, t.y + HEADER_HEIGHT / 2 + 1, t.w - 20);
+
+            // Small header glyphs flag that this table has more to it than the column
+            // list shows - open the details panel for the specifics. Drawn right to
+            // left so the closest one to the corner is whichever is most likely present.
+            ctx.font = "11px 'Inter', system-ui, sans-serif";
+            ctx.textAlign = "right";
+            let badgeX = t.x + t.w - 10;
+            if (t.triggers.length > 0) {
+                ctx.fillStyle = fkColor;
+                ctx.fillText("⚡", badgeX, t.y + HEADER_HEIGHT / 2 + 1);
+                badgeX -= 14;
+            }
+            if (t.indexes.length > 0) {
+                ctx.fillStyle = mutedColor;
+                ctx.fillText("▤", badgeX, t.y + HEADER_HEIGHT / 2 + 1);
+                badgeX -= 14;
+            }
+            if (t.checkConstraints.length > 0) {
+                ctx.fillStyle = pkColor;
+                ctx.fillText("✓", badgeX, t.y + HEADER_HEIGHT / 2 + 1);
+                badgeX -= 14;
+            }
+            ctx.textAlign = "left";
+
+            const cols = t.columns.length > 0 ? t.columns : [{ name: "(no columns found)", dataType: "", isNullable: true, isPrimaryKey: false }];
+            cols.forEach(function (c, i) {
+                const rowY = t.y + HEADER_HEIGHT + i * ROW_HEIGHT;
+                if (i % 2 === 1) {
+                    ctx.fillStyle = rowAltColor;
+                    ctx.fillRect(t.x + 1, rowY, t.w - 2, ROW_HEIGHT);
+                }
+
+                const isFk = t.foreignKeys.some(function (fk) { return fk.column === c.name; });
+                const isEnum = enumByName.has(String(c.dataType).toLowerCase());
+                ctx.font = "12px 'JetBrains Mono', Consolas, ui-monospace, monospace";
+                if (c.isPrimaryKey) {
+                    drawKeyIcon(t.x + 8, rowY + ROW_HEIGHT / 2 + 1, pkColor);
+                } else if (isFk) {
+                    drawFkKeyIcon(t.x + 8, rowY + ROW_HEIGHT / 2 + 1, fkColor);
+                } else {
+                    ctx.fillStyle = mutedColor;
+                    ctx.fillText("·", t.x + 10, rowY + ROW_HEIGHT / 2 + 1);
+                }
+
+                ctx.fillStyle = textColor;
+                ctx.font = (c.isPrimaryKey ? "600 " : "") + "12px 'JetBrains Mono', Consolas, ui-monospace, monospace";
+                ctx.fillText(c.name, t.x + 26, rowY + ROW_HEIGHT / 2 + 1, t.w - 100);
+
+                ctx.fillStyle = isEnum ? enumColor : faintColor;
+                ctx.font = "11px 'JetBrains Mono', Consolas, ui-monospace, monospace";
+                ctx.textAlign = "right";
+                const typeLabel = c.dataType + (c.isNullable ? "?" : "");
+                ctx.fillText(typeLabel, t.x + t.w - 10, rowY + ROW_HEIGHT / 2 + 1, 90);
+                ctx.textAlign = "left";
+            });
+
+            ctx.globalAlpha = 1;
+        });
+
+        ctx.restore();
+    }
+
+    function tableAt(screenX, screenY) {
+        const world = screenToWorld(screenX, screenY);
+        for (let i = layoutTables.length - 1; i >= 0; i--) {
+            const t = layoutTables[i];
+            if (world.x >= t.x && world.x <= t.x + t.w && world.y >= t.y && world.y <= t.y + t.h) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    function columnAt(table, screenY) {
+        const world = screenToWorld(0, screenY);
+        const relY = world.y - table.y - HEADER_HEIGHT;
+        if (relY < 0) return null;
+        const idx = Math.floor(relY / ROW_HEIGHT);
+        if (idx < 0 || idx >= table.columns.length) return null;
+        return table.columns[idx];
+    }
+
+    // ── Pointer interaction: pan, zoom, drag tables, hover tooltip ──────────
+    let isPanning = false;
+    let isDraggingTable = false;
+    let dragTable = null;
+    let lastPointer = { x: 0, y: 0 };
+    let pointerDownPos = { x: 0, y: 0 };
+    let movedSinceDown = false;
+
+    canvas.addEventListener("wheel", function (e) {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const factor = Math.pow(1.0015, -e.deltaY);
+        zoomAt(factor, sx, sy);
+    }, { passive: false });
+
+    canvas.addEventListener("pointerdown", function (e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        lastPointer = { x: sx, y: sy };
+        pointerDownPos = { x: sx, y: sy };
+        movedSinceDown = false;
+
+        const hit = tableAt(sx, sy);
+        if (hit) {
+            isDraggingTable = true;
+            dragTable = hit;
+        } else {
+            isPanning = true;
+            wrap.classList.add("is-panning");
+        }
+        canvas.setPointerCapture(e.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", function (e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        const dx = sx - lastPointer.x;
+        const dy = sy - lastPointer.y;
+
+        if (Math.abs(sx - pointerDownPos.x) > 3 || Math.abs(sy - pointerDownPos.y) > 3) {
+            movedSinceDown = true;
+        }
+
+        if (isDraggingTable && dragTable) {
+            dragTable.x += dx / viewScale;
+            dragTable.y += dy / viewScale;
+            scheduleRender();
+            scheduleSaveLayout();
+        } else if (isPanning) {
+            viewX -= dx / viewScale;
+            viewY -= dy / viewScale;
+            scheduleRender();
+            scheduleSaveLayout();
+        } else {
+            const hit = tableAt(sx, sy);
+            if (hit !== hoverTable) {
+                hoverTable = hit;
+                scheduleRender();
+            }
+
+            if (hit) {
+                if (hoverEdge !== null) { hoverEdge = null; scheduleRender(); }
+
+                const col = columnAt(hit, sy);
+                const fk = col ? hit.foreignKeys.find(function (f) { return f.column === col.name; }) : null;
+                const enumDef = col ? enumByName.get(String(col.dataType).toLowerCase()) : null;
+                let html = "<strong>" + escapeHtml(hit.name) + "</strong>";
+                if (col) {
+                    html += "<br>" + escapeHtml(col.name) + " &mdash; " + escapeHtml(col.dataType) + (col.isNullable ? " (nullable)" : "");
+                    if (col.isPrimaryKey) html += "<br>Primary key";
+                    if (col.isUnique && !col.isPrimaryKey) html += "<br>Unique";
+                    if (col.isIdentity) html += "<br>Identity column";
+                    columnDetailLines(hit, col, fk, enumDef).forEach(function (line) {
+                        html += "<br>" + escapeHtml(line);
+                    });
+                } else {
+                    html += "<br>" + hit.columns.length + " column(s)";
+                    if (hit.checkConstraints.length > 0) html += "<br>" + hit.checkConstraints.length + " check constraint(s)";
+                    if (hit.indexes.length > 0) html += "<br>" + hit.indexes.length + " index(es)";
+                    if (hit.triggers.length > 0) html += "<br>" + hit.triggers.length + " trigger(s)";
+                    if (hit.comment) html += "<br>" + escapeHtml(hit.comment);
+                }
+                tooltip.innerHTML = html;
+                tooltip.style.left = (sx + 16) + "px";
+                tooltip.style.top = (sy + 16) + "px";
+                tooltip.classList.add("is-visible");
+            } else {
+                const world = screenToWorld(sx, sy);
+                const edgeHit = findEdgeNear(world.x, world.y, 7);
+                if (edgeHit !== hoverEdge) {
+                    hoverEdge = edgeHit;
+                    scheduleRender();
+                }
+
+                if (edgeHit) {
+                    const fkColumn = edgeHit.from.columns.find(function (c) { return c.name === edgeHit.fk.column; });
+                    const mandatory = !fkColumn || !fkColumn.isNullable;
+                    let html = "<strong>" + escapeHtml(edgeHit.from.name) + "." + escapeHtml(edgeHit.fk.column) + "</strong>";
+                    html += " &rarr; " + escapeHtml(edgeHit.to.name) + "." + escapeHtml(edgeHit.fk.refColumn);
+                    html += "<br>" + (mandatory ? "One-or-many" : "Zero-or-many") + " " + escapeHtml(edgeHit.from.name);
+                    html += " per " + escapeHtml(edgeHit.to.name);
+                    if (edgeHit.fk.constraintName) html += "<br>" + escapeHtml(edgeHit.fk.constraintName);
+                    tooltip.innerHTML = html;
+                    tooltip.style.left = (sx + 16) + "px";
+                    tooltip.style.top = (sy + 16) + "px";
+                    tooltip.classList.add("is-visible");
+                } else {
+                    tooltip.classList.remove("is-visible");
+                }
+            }
+        }
+
+        lastPointer = { x: sx, y: sy };
+    });
+
+    function endInteraction(e) {
+        if (isDraggingTable && dragTable && movedSinceDown) {
+            activeTable = dragTable;
+            highlightSidebar(dragTable);
+            showDetails(dragTable);
+            saveLayoutNow();
+        } else if (!isPanning && !movedSinceDown) {
+            const hit = tableAt(pointerDownPos.x, pointerDownPos.y);
+            activeTable = hit;
+            if (hit) {
+                highlightSidebar(hit);
+                showDetails(hit);
+            } else {
+                hideDetails();
+            }
+        } else if (isPanning) {
+            saveLayoutNow();
+        }
+        isPanning = false;
+        isDraggingTable = false;
+        dragTable = null;
+        wrap.classList.remove("is-panning");
+        scheduleRender();
+    }
+
+    canvas.addEventListener("pointerup", endInteraction);
+    canvas.addEventListener("pointercancel", endInteraction);
+    canvas.addEventListener("pointerleave", function () {
+        hoverTable = null;
+        hoverEdge = null;
+        tooltip.classList.remove("is-visible");
+        scheduleRender();
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+        });
+    }
+
+    // ── Sidebar ──────────────────────────────────────────────────────────────
+    const listEl = document.getElementById("table-list");
+
+    function renderSidebar() {
+        listEl.innerHTML = "";
+        if (layoutTables.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "sidebar-empty";
+            empty.textContent = "This schema has no tables.";
+            listEl.appendChild(empty);
+            return;
+        }
+
+        layoutTables
+            .filter(function (t) { return !filterText || t.name.toLowerCase().indexOf(filterText) !== -1; })
+            .forEach(function (t) {
+                const btn = document.createElement("button");
+                btn.className = "table-item" + (t === activeTable ? " is-active" : "");
+                btn.dataset.tableId = String(t.id);
+
+                const dot = document.createElement("span");
+                dot.className = "table-item-dot";
+
+                const name = document.createElement("span");
+                name.className = "table-item-name";
+                name.textContent = t.name;
+
+                const count = document.createElement("span");
+                count.className = "table-item-count";
+                count.textContent = String(t.columns.length);
+
+                btn.appendChild(dot);
+                btn.appendChild(name);
+                btn.appendChild(count);
+                btn.addEventListener("click", function () { focusTable(t); });
+                listEl.appendChild(btn);
+            });
+    }
+
+    function highlightSidebar(t) {
+        Array.prototype.forEach.call(listEl.querySelectorAll(".table-item"), function (el) {
+            el.classList.toggle("is-active", el.dataset.tableId === String(t.id));
+        });
+    }
+
+    // A table already on screen just gets highlighted and detailed - re-centring
+    // it would yank the view out from under someone who deliberately scrolled it
+    // into view themselves. Only a table that's actually off screen gets panned to.
+    function isTableVisible(t) {
+        const rect = wrap.getBoundingClientRect();
+        const margin = 24;
+        const topLeft = worldToScreen(t.x, t.y);
+        const bottomRight = worldToScreen(t.x + t.w, t.y + t.h);
+        return topLeft.x >= margin && topLeft.y >= margin &&
+            bottomRight.x <= rect.width - margin && bottomRight.y <= rect.height - margin;
+    }
+
+    function focusTable(t) {
+        activeTable = t;
+        highlightSidebar(t);
+        showDetails(t);
+
+        if (!isTableVisible(t)) {
+            const rect = wrap.getBoundingClientRect();
+            viewX = t.x + t.w / 2 - (rect.width / 2) / viewScale;
+            viewY = t.y + t.h / 2 - (rect.height / 2) / viewScale;
+            scheduleSaveLayout();
+        }
+
+        scheduleRender();
+    }
+
+    // ── Enums ────────────────────────────────────────────────────────────────
+    const enumsSection = document.getElementById("enums-section");
+
+    function renderEnums() {
+        if (schema.enums.length === 0) {
+            enumsSection.hidden = true;
+            return;
+        }
+
+        enumsSection.hidden = false;
+        enumsSection.innerHTML = "";
+
+        const title = document.createElement("h2");
+        title.className = "sidebar-title";
+        title.textContent = "Enums";
+        enumsSection.appendChild(title);
+
+        schema.enums.forEach(function (e) {
+            const item = document.createElement("div");
+            item.className = "enum-item";
+
+            const name = document.createElement("div");
+            name.className = "enum-name";
+            name.textContent = e.name;
+
+            const values = document.createElement("div");
+            values.className = "enum-values";
+            values.textContent = e.values.join(", ");
+
+            item.appendChild(name);
+            item.appendChild(values);
+            enumsSection.appendChild(item);
+        });
+    }
+
+    renderSidebar();
+    renderEnums();
+
+    // ── Details panel ────────────────────────────────────────────────────────
+    const detailsPanel = document.getElementById("details-panel");
+    const detailsTitle = document.getElementById("details-title");
+    const detailsSubtitle = document.getElementById("details-subtitle");
+    const detailsComment = document.getElementById("details-comment");
+    const detailsColumns = document.getElementById("details-columns");
+
+    function makeTag(text, cls) {
+        const span = document.createElement("span");
+        span.className = "tag " + cls;
+        span.textContent = text;
+        return span;
+    }
+
+    // A column can carry a comment, an FK reference (with its ON DELETE/UPDATE
+    // rules), enum values, and a default all at once - these render as stacked
+    // lines under the tags rather than competing for one slot.
+    function columnDetailLines(t, c, fk, enumDef) {
+        const lines = [];
+        if (c.comment) lines.push(c.comment);
+
+        if (fk) {
+            let fkLine = "References " + fk.refTable + "." + fk.refColumn;
+            const actions = [];
+            if (fk.onDelete && fk.onDelete !== "NO ACTION") actions.push("ON DELETE " + fk.onDelete);
+            if (fk.onUpdate && fk.onUpdate !== "NO ACTION") actions.push("ON UPDATE " + fk.onUpdate);
+            if (actions.length > 0) fkLine += " (" + actions.join(", ") + ")";
+            lines.push(fkLine);
+        }
+
+        if (enumDef) lines.push("Values: " + enumDef.values.join(", "));
+
+        if (c.generatedExpression) {
+            lines.push("Generated as: " + c.generatedExpression);
+        } else if (c.default) {
+            lines.push("Default: " + c.default);
+        }
+
+        return lines;
+    }
+
+    function showDetails(t) {
+        detailsTitle.textContent = t.name;
+
+        const referencedBy = edges.filter(function (e) { return e.to === t && e.from !== t; }).length;
+        const parts = [t.columns.length + " column" + (t.columns.length === 1 ? "" : "s")];
+        if (t.foreignKeys.length > 0) parts.push(t.foreignKeys.length + " FK" + (t.foreignKeys.length === 1 ? "" : "s"));
+        if (referencedBy > 0) parts.push("referenced by " + referencedBy);
+        detailsSubtitle.textContent = parts.join(" · ");
+
+        if (t.comment) {
+            detailsComment.textContent = t.comment;
+            detailsComment.hidden = false;
+        } else {
+            detailsComment.hidden = true;
+        }
+
+        const checksList = document.getElementById("details-checks-list");
+        const checksSection = document.getElementById("details-checks");
+        if (t.checkConstraints.length > 0) {
+            checksSection.hidden = false;
+            checksList.innerHTML = "";
+            t.checkConstraints.forEach(function (chk) {
+                const item = document.createElement("div");
+                item.className = "details-check-item";
+
+                const name = document.createElement("div");
+                name.className = "details-check-name";
+                name.textContent = chk.name;
+
+                const def = document.createElement("div");
+                def.className = "details-check-def";
+                def.textContent = chk.definition;
+
+                item.appendChild(name);
+                item.appendChild(def);
+                checksList.appendChild(item);
+            });
+        } else {
+            checksSection.hidden = true;
+        }
+
+        const indexesList = document.getElementById("details-indexes-list");
+        const indexesSection = document.getElementById("details-indexes");
+        if (t.indexes.length > 0) {
+            indexesSection.hidden = false;
+            indexesList.innerHTML = "";
+            t.indexes.forEach(function (ix) {
+                const item = document.createElement("div");
+                item.className = "details-index-item";
+
+                const name = document.createElement("div");
+                name.className = "details-index-name";
+
+                const label = document.createElement("span");
+                label.textContent = ix.name;
+                name.appendChild(label);
+
+                if (ix.isUnique) name.appendChild(makeTag("unique", "tag-unique"));
+                if (ix.method) name.appendChild(makeTag(ix.method, "tag-null"));
+
+                const cols = document.createElement("span");
+                cols.className = "details-index-columns";
+                cols.textContent = ix.columns.join(", ");
+                name.appendChild(cols);
+
+                item.appendChild(name);
+                indexesList.appendChild(item);
+            });
+        } else {
+            indexesSection.hidden = true;
+        }
+
+        const triggersList = document.getElementById("details-triggers-list");
+        const triggersSection = document.getElementById("details-triggers");
+        if (t.triggers.length > 0) {
+            triggersSection.hidden = false;
+            triggersList.innerHTML = "";
+            t.triggers.forEach(function (tg) {
+                const item = document.createElement("div");
+                item.className = "details-check-item";
+
+                const name = document.createElement("div");
+                name.className = "details-check-name";
+
+                const label = document.createElement("span");
+                label.textContent = tg.name;
+                name.appendChild(label);
+
+                if (!tg.isEnabled) name.appendChild(makeTag("disabled", "tag-disabled"));
+                name.appendChild(makeTag(tg.timing + " " + tg.events.join(" OR "), "tag-trigger"));
+
+                const def = document.createElement("div");
+                def.className = "details-check-def";
+                def.textContent = (tg.level ? tg.level + " · " : "") + tg.statement;
+
+                item.appendChild(name);
+                item.appendChild(def);
+                triggersList.appendChild(item);
+            });
+        } else {
+            triggersSection.hidden = true;
+        }
+
+        detailsColumns.innerHTML = "";
+        t.columns.forEach(function (c) {
+            const row = document.createElement("div");
+            row.className = "details-row";
+
+            const main = document.createElement("div");
+            main.className = "details-row-main";
+
+            const name = document.createElement("span");
+            name.className = "details-row-name" + (c.isPrimaryKey ? " is-pk" : "");
+            name.textContent = c.name;
+
+            const type = document.createElement("span");
+            type.className = "details-row-type";
+            type.textContent = c.dataType;
+
+            main.appendChild(name);
+            main.appendChild(type);
+            row.appendChild(main);
+
+            const fk = t.foreignKeys.find(function (f) { return f.column === c.name; });
+            const enumDef = enumByName.get(String(c.dataType).toLowerCase()) || null;
+
+            const tags = document.createElement("div");
+            tags.className = "details-row-tags";
+            if (c.isPrimaryKey) tags.appendChild(makeTag("PK", "tag-pk"));
+            if (c.isUnique && !c.isPrimaryKey) tags.appendChild(makeTag("unique", "tag-unique"));
+            if (fk) tags.appendChild(makeTag("FK → " + fk.refTable, "tag-fk"));
+            if (enumDef) tags.appendChild(makeTag("enum", "tag-enum"));
+            if (c.isIdentity) tags.appendChild(makeTag("identity", "tag-generated"));
+            if (c.generatedExpression) tags.appendChild(makeTag("generated", "tag-generated"));
+            if (c.isNullable) tags.appendChild(makeTag("nullable", "tag-null"));
+            if (tags.childNodes.length > 0) row.appendChild(tags);
+
+            columnDetailLines(t, c, fk, enumDef).forEach(function (text) {
+                const p = document.createElement("p");
+                p.className = "details-row-comment";
+                p.textContent = text;
+                row.appendChild(p);
+            });
+
+            detailsColumns.appendChild(row);
+        });
+
+        detailsPanel.classList.add("is-visible");
+        resizeCanvas();
+    }
+
+    function hideDetails() {
+        detailsPanel.classList.remove("is-visible");
+        resizeCanvas();
+    }
+
+    document.getElementById("details-close").addEventListener("click", function () {
+        activeTable = null;
+        Array.prototype.forEach.call(listEl.querySelectorAll(".table-item"), function (el) {
+            el.classList.remove("is-active");
+        });
+        hideDetails();
+        scheduleRender();
+    });
+
+    // ── Search ───────────────────────────────────────────────────────────────
+    const searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("input", function () {
+        filterText = searchInput.value.trim().toLowerCase();
+        renderSidebar();
+        scheduleRender();
+    });
+
+    // ── Toolbar ──────────────────────────────────────────────────────────────
+    document.getElementById("zoom-in").addEventListener("click", function () {
+        const rect = wrap.getBoundingClientRect();
+        zoomAt(1.25, rect.width / 2, rect.height / 2);
+    });
+    document.getElementById("zoom-out").addEventListener("click", function () {
+        const rect = wrap.getBoundingClientRect();
+        zoomAt(0.8, rect.width / 2, rect.height / 2);
+    });
+    document.getElementById("fit-view").addEventListener("click", fitView);
+    document.getElementById("reset-view").addEventListener("click", function () {
+        viewScale = 1;
+        viewX = 0;
+        viewY = 0;
+        updateZoomLabel();
+        scheduleRender();
+        scheduleSaveLayout();
+    });
+    document.getElementById("auto-arrange").addEventListener("click", function () {
+        autoArrange();
+        fitView();
+        renderSidebar();
+        saveLayoutNow();
+    });
+    document.getElementById("export-png").addEventListener("click", exportPng);
+
+    const lineStyleSeg = document.getElementById("line-style-seg");
+    Array.prototype.forEach.call(lineStyleSeg.querySelectorAll("button"), function (btn) {
+        btn.classList.toggle("is-on", btn.dataset.style === lineStyle);
+        btn.addEventListener("click", function () {
+            if (btn.dataset.style === lineStyle) return;
+            lineStyle = btn.dataset.style;
+            Array.prototype.forEach.call(lineStyleSeg.querySelectorAll("button"), function (b) {
+                b.classList.toggle("is-on", b === btn);
+            });
+            try { localStorage.setItem(LINE_STYLE_KEY, lineStyle); } catch (e) { /* storage unavailable */ }
+            scheduleRender();
+        });
+    });
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    window.addEventListener("resize", resizeCanvas);
+    window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").addEventListener &&
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", scheduleRender);
+    window.addEventListener("beforeunload", saveLayoutNow);
+
+    resizeCanvas();
+    if (hasSavedView) {
+        updateZoomLabel();
+        scheduleRender();
+    } else {
+        fitView();
+    }
+})();
+</script>
+</body>
+</html>

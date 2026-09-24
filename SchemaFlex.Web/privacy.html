@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy — SchemaFlex</title>
+    <meta name="description" content="What SchemaFlex the CLI tool sends and stores (nothing), and what this website itself logs." />
+    <meta name="theme-color" content="#f9fbfc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0d11" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+</head>
+<body>
+    <header class="bar">
+        <a class="brand" href="/">
+            <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <rect x="4" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="19" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="11.5" y="19" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <path d="M8.5 13v3a3 3 0 0 0 3 3h1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+                <path d="M23.5 13v3a3 3 0 0 1-3 3h-1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+            <span class="brand-name">Schema<span class="brand-name-accent">Flex</span></span>
+        </a>
+        <nav class="bar-nav">
+            <a href="/#databases">Databases</a>
+            <a href="/#included">What's included</a>
+            <a href="/#use-cases">Use cases</a>
+            <a href="/#example">Example</a>
+            <a href="/#install">Install</a>
+            <a href="https://github.com/Viewsource-Ltd/SchemaFlex" class="bar-cta">GitHub</a>
+        </nav>
+    </header>
+
+    <main>
+        <article class="prose">
+            <p class="eyebrow">SchemaFlex</p>
+            <h1>Privacy</h1>
+            <p class="doc-updated">Last updated {{LAST_UPDATED}}</p>
+
+            <div class="doc-summary">
+                <h2>The short version</h2>
+                <ul>
+                    <li><strong>SchemaFlex the tool sends nothing anywhere.</strong> It is a local
+                        command-line program. It connects to the database you point it at (optionally
+                        through an SSH tunnel you configure with <code>--ssh-host</code>), reads the
+                        schema, and writes the HTML file you asked for &mdash; that's the entire network
+                        and disk footprint.</li>
+                    <li><strong>Your connection string and schema never reach us.</strong> There is no
+                        server component, no telemetry, and no analytics built into the tool itself.</li>
+                    <li><strong>This website is a static marketing page.</strong> It doesn't run any of
+                        your data through anything &mdash; the example diagram on the homepage is a fixed
+                        file generated ahead of time from a sample database, not a live connection.</li>
+                </ul>
+            </div>
+
+            <h2>The SchemaFlex CLI tool</h2>
+            <p>
+                SchemaFlex is a .NET console application you run on your own machine. When invoked, it
+                opens the database connection you supply, reads table, column, key, index, constraint,
+                trigger and enum metadata, and serializes that into a single HTML file alongside a
+                bundled viewer template. It then exits.
+            </p>
+            <p>
+                It makes no network request other than the one database connection you give it in
+                <code>--connection</code> (and, if you supply <code>--ssh-host</code>, the SSH tunnel
+                that connection is routed through). It has no update checker, no crash reporter, and no
+                analytics of any kind. The only thing it writes to disk is the output file you asked for
+                (default <code>erd.html</code>).
+            </p>
+
+            <h2>This website</h2>
+            <p>
+                This site describes SchemaFlex and links to where you can download it. It has no
+                accounts, no forms, no cookies and no client-side scripts of its own beyond a small
+                script that highlights the current section in the navigation bar &mdash; every page is
+                plain, static HTML hosted on GitHub Pages.
+            </p>
+            <p>
+                Like any web server, the infrastructure hosting this site keeps standard access logs
+                (requesting IP address, timestamp, page requested, response status, user-agent) for
+                operating and securing the service. These are not combined with anything SchemaFlex the
+                tool does on your machine, because the two have no connection to each other.
+            </p>
+
+            <h2>Contact</h2>
+            <p>
+                Questions about this notice, or about SchemaFlex generally, can be raised as an issue on
+                the <a href="https://github.com/Viewsource-Ltd/SchemaFlex">GitHub repository</a>.
+            </p>
+
+            <p class="doc-back"><a href="/">&larr; Back to SchemaFlex</a></p>
+        </article>
+    </main>
+
+    <footer>
+        <div class="wrap footer-row">
+            <span>&copy; {{YEAR}} Viewsource Ltd. SchemaFlex is a local CLI tool. &middot; Last updated {{LAST_UPDATED}}</span>
+            <span class="footer-links">
+                <a href="/privacy.html">Privacy</a>
+                <a href="https://github.com/Viewsource-Ltd/SchemaFlex">GitHub</a>
+                <a href="https://buymeacoffee.com/andyrobinson" target="_blank" rel="noopener">Buy me a coffee</a>
+            </span>
+        </div>
+    </footer>
+
+    <script src="/js/nav.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+/* SchemaFlex marketing site.
+
+   The palette, scale and type stack are the same tokens SchemaFlex itself writes into
+   every ERD viewer it generates (see SchemaFlex.Core/templates/erd.html) and the same
+   convention every *Flex tool shares: dark by default, an accent that is the one colour
+   a reader sees before they've read anything, and everything else drawn from a shared
+   grey scale so the tools read as one workshop. No JavaScript - this site is static
+   HTML rendered by Razor Pages, so every rule here has to work without a theme toggle
+   script; the light values kick in from prefers-color-scheme alone. */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    font-size: 120%;
+}
+
+:root {
+    color-scheme: dark;
+    --sf-bg: #0d1015;
+    --sf-pane: #15191f;
+    --sf-pane-alt: #11151a;
+    --sf-chrome: #0a0d11;
+    --sf-chrome-2: #12161c;
+    --sf-chrome-hover: #1e242d;
+    --sf-border: #262f3a;
+    --sf-border-soft: #1a212a;
+    --sf-text: #dde5ee;
+    --sf-muted: #8391a2;
+    --sf-faint: #56626f;
+    --sf-accent: #4cb7ec;
+    --sf-accent-bright: #6bc8f5;
+    --sf-accent-ink: #04141e;
+    --sf-accent-dim: rgba(76, 183, 236, 0.45);
+    --sf-accent-wash: rgba(76, 183, 236, 0.14);
+
+    --sf-pk: #e8b76c;
+    --sf-fk: #8b7cf6;
+    --sf-enum: #e28ad6;
+
+    --sf-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        color-scheme: light;
+        --sf-bg: #e7ebf0;
+        --sf-pane: #ffffff;
+        --sf-pane-alt: #f7f9fb;
+        --sf-chrome: #f9fbfc;
+        --sf-chrome-2: #f1f4f7;
+        --sf-chrome-hover: #e4e9ef;
+        --sf-border: #ccd5df;
+        --sf-border-soft: #dde4eb;
+        --sf-text: #18202a;
+        --sf-muted: #5a6673;
+        --sf-faint: #98a3af;
+        --sf-accent: #1a86c4;
+        --sf-accent-bright: #1670a3;
+        --sf-accent-ink: #ffffff;
+        --sf-accent-dim: rgba(26, 134, 196, 0.45);
+        --sf-accent-wash: rgba(26, 134, 196, 0.10);
+
+        --sf-pk: #9a5c00;
+        --sf-fk: #5b48d8;
+        --sf-enum: #9a3f8c;
+
+        --sf-shadow: 0 1px 2px rgba(24, 32, 42, 0.06);
+    }
+}
+
+/* min-height, not height: `height: 100%` would cap body's box at one viewport tall,
+   which is also the sticky bar's containing block - it would stop sticking exactly
+   where that box ends, i.e. right after the hero. */
+html, body {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--sf-bg);
+    color: var(--sf-text);
+    font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.mono {
+    font-family: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+}
+
+a {
+    color: var(--sf-accent);
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+
+.bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 3.25rem;
+    padding: 0 1.25rem;
+    background: var(--sf-chrome);
+    border-bottom: 1px solid var(--sf-border);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.brand-mark {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+    color: var(--sf-accent);
+}
+
+.brand-name {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--sf-text);
+}
+
+.brand-name-accent {
+    color: var(--sf-accent);
+}
+
+.bar-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-left: auto;
+    font-size: 0.875rem;
+}
+
+.bar-nav a {
+    color: var(--sf-muted);
+    text-decoration: none;
+}
+
+.bar-nav a:hover {
+    color: var(--sf-text);
+}
+
+/* The current section, set by js/nav.js as you scroll. Full text colour rather than
+   the accent - the accent already marks the brand and the primary CTA, so a second
+   thing turning that colour would compete with both. */
+.bar-nav a.is-active {
+    color: var(--sf-text);
+    font-weight: 600;
+}
+
+.bar-cta {
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.375rem;
+    color: var(--sf-text) !important;
+    font-weight: 600;
+}
+
+.bar-cta:hover {
+    background: var(--sf-chrome-hover);
+    border-color: var(--sf-accent-dim);
+}
+
+/* ── Layout shell ────────────────────────────────────────────────────────── */
+
+.wrap {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+}
+
+.prose {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 6rem;
+}
+
+section {
+    padding: 4rem 0;
+    scroll-margin-top: 3.25rem;
+}
+
+section + section {
+    border-top: 1px solid var(--sf-border-soft);
+}
+
+.eyebrow {
+    margin: 0 0 0.625rem;
+    color: var(--sf-accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--sf-text);
+}
+
+h2 {
+    font-size: 1.625rem;
+}
+
+h3 {
+    font-size: 1.0625rem;
+}
+
+.lede {
+    max-width: 56rem;
+    margin: 0.875rem 0 0;
+    color: var(--sf-muted);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+}
+
+p {
+    color: var(--sf-text);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.hero {
+    padding: 4.5rem 0 3.5rem;
+    text-align: center;
+}
+
+.hero-mark {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto 1.25rem;
+    color: var(--sf-accent);
+}
+
+.hero h1 {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 1.15;
+}
+
+.hero .lede {
+    max-width: 36rem;
+    margin-inline: auto;
+    text-align: center;
+    font-size: 1.125rem;
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    padding: 0.625rem 1.125rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.375rem;
+    background: var(--sf-pane);
+    color: var(--sf-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    border-color: var(--sf-accent-dim);
+    background: var(--sf-chrome-hover);
+}
+
+.btn-primary {
+    border-color: transparent;
+    background: var(--sf-accent);
+    color: var(--sf-accent-ink);
+}
+
+.btn-primary:hover {
+    background: var(--sf-accent-bright);
+}
+
+.hero-note {
+    margin: 0.875rem 0 0;
+    color: var(--sf-faint);
+    font-size: 0.8125rem;
+}
+
+/* One line of the CLI, styled like a terminal, sitting under the hero copy so the
+   promise ("point it at a database, get back a file") is shown rather than just told. */
+.hero-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 2rem auto 0;
+    padding: 0.75rem 1.125rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.5rem;
+    background: var(--sf-chrome);
+    box-shadow: var(--sf-shadow);
+    color: var(--sf-muted);
+    font-size: 0.8125rem;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.hero-cmd .prompt {
+    color: var(--sf-faint);
+}
+
+.hero-cmd .cmd {
+    color: var(--sf-text);
+}
+
+.hero-cmd .flag {
+    color: var(--sf-accent);
+}
+
+/* ── Cards / grids ───────────────────────────────────────────────────────── */
+
+.grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.grid-4 {
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.card {
+    padding: 1.25rem 1.375rem;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.5rem;
+    background: var(--sf-pane);
+}
+
+.card h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.card p {
+    margin: 0;
+    color: var(--sf-muted);
+    font-size: 0.875rem;
+}
+
+.card-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: none;
+    color: var(--sf-accent);
+}
+
+.db-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+}
+
+/* A small colour chip per vendor, tinted with that database's own brand colour rather
+   than the site's accent - the point here is telling PostgreSQL from MySQL at a
+   glance, which a single shared accent colour cannot do. The mark inside each one is
+   the vendor's own logo (paths from the Simple Icons project, CC0-licensed for reuse;
+   the underlying brand marks remain each vendor's trademark and are used here only to
+   identify the database, not to imply endorsement). */
+.db-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    flex: none;
+    border-radius: 0.5rem;
+}
+
+.db-logo svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* The SQL Server mark ships as a full-colour raster (red/silver), not a single-colour
+   path like the others, so it gets a white chip to sit on instead of a brand-colour
+   fill - a colour fill would hide half the logo instead of showing it through. */
+.db-logo-img {
+    background: #fff;
+    border: 1px solid var(--sf-border-soft);
+    padding: 0.2rem;
+}
+
+.db-logo-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.db-card div span {
+    display: block;
+}
+
+.db-name {
+    font-weight: 600;
+    color: var(--sf-text);
+    font-size: 0.9375rem;
+}
+
+.db-driver {
+    color: var(--sf-faint);
+    font-size: 0.75rem;
+}
+
+/* ── Code blocks ─────────────────────────────────────────────────────────── */
+
+pre {
+    margin: 1rem 0 0;
+    padding: 1rem 1.125rem;
+    overflow-x: auto;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.5rem;
+    background: var(--sf-chrome);
+}
+
+pre code {
+    font-family: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--sf-text);
+    background: none;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+}
+
+code {
+    padding: 0.0625rem 0.3125rem;
+    border-radius: 0.1875rem;
+    background: var(--sf-pane-alt);
+    border: 1px solid var(--sf-border-soft);
+    font-family: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+    font-size: 0.85em;
+}
+
+.example-block h3 {
+    margin-bottom: 0.375rem;
+}
+
+.example-block .lede {
+    margin: 0 0 1rem;
+    font-size: 0.9375rem;
+}
+
+/* ── Options table ───────────────────────────────────────────────────────── */
+
+.table-wrap {
+    margin-top: 1rem;
+    overflow-x: auto;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.5rem;
+}
+
+table {
+    width: 100%;
+    min-width: 32rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+th, td {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--sf-border-soft);
+    text-align: left;
+    vertical-align: top;
+}
+
+thead th {
+    background: var(--sf-pane-alt);
+    color: var(--sf-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom-color: var(--sf-border);
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+td:first-child code {
+    white-space: nowrap;
+}
+
+/* ── Live example frame ──────────────────────────────────────────────────── */
+
+.example-frame-wrap {
+    margin-top: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--sf-border);
+    border-radius: 0.625rem;
+    background: var(--sf-chrome);
+    box-shadow: var(--sf-shadow);
+}
+
+.example-frame-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--sf-chrome-2);
+    border-bottom: 1px solid var(--sf-border);
+    font-size: 0.75rem;
+    color: var(--sf-muted);
+}
+
+.example-frame-dots {
+    display: flex;
+    gap: 0.3125rem;
+}
+
+.example-frame-dots span {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--sf-border);
+}
+
+.example-frame-bar a {
+    margin-left: auto;
+    color: var(--sf-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+iframe.example-frame {
+    display: block;
+    width: 100%;
+    height: 34rem;
+    border: 0;
+    background: var(--sf-bg);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+footer {
+    padding: 2.5rem 0 3rem;
+    border-top: 1px solid var(--sf-border-soft);
+    color: var(--sf-faint);
+    font-size: 0.8125rem;
+}
+
+.footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.footer-links {
+    display: flex;
+    gap: 1.25rem;
+}
+
+.footer-links a {
+    color: var(--sf-muted);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--sf-text);
+}
+
+/* ── Standing document pages (privacy) ──────────────────────────────────── */
+
+.doc-updated {
+    margin: 0.5rem 0 2rem;
+    color: var(--sf-faint);
+    font-size: 0.8125rem;
+}
+
+.doc-summary {
+    margin: 0 0 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--sf-border);
+    border-left: 3px solid var(--sf-accent);
+    border-radius: 0.375rem;
+    background: var(--sf-pane-alt);
+}
+
+.doc-summary h2 {
+    margin: 0 0 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.doc-summary ul, .prose ul {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+    color: var(--sf-text);
+}
+
+.doc-summary li:last-child {
+    margin-bottom: 0;
+}
+
+.prose h2 {
+    margin: 2.25rem 0 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sf-border-soft);
+    font-size: 1.125rem;
+}
+
+.prose h2:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.prose p {
+    margin: 0 0 1rem;
+}
+
+@media (max-width: 640px) {
+    section {
+        padding: 3rem 0;
+    }
+
+    .hero {
+        padding: 3rem 0 2.5rem;
+    }
+
+    .bar-nav {
+        gap: 1rem;
+    }
+}

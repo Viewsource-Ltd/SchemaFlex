@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="SchemaFlex.Core/SchemaFlex.Core.csproj" />
+  <Project Path="SchemaFlex.Tests/SchemaFlex.Tests.csproj" />
+  <Project Path="SchemaFlex/SchemaFlex.csproj" />
+</Solution>

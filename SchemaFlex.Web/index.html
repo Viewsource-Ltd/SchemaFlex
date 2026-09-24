@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SchemaFlex — an offline ERD viewer for your database</title>
+    <meta name="description" content="SchemaFlex is a command-line tool that reads a PostgreSQL, SQL Server, MySQL/MariaDB or SQLite schema and generates a single self-contained HTML file with an interactive ERD viewer &mdash; export to PNG, view the generated DDL, and tunnel over SSH. No server, no account, nothing leaves your machine." />
+    <meta name="theme-color" content="#f9fbfc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0d11" media="(prefers-color-scheme: dark)" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
+</head>
+<body>
+    <header class="bar">
+        <a class="brand" href="/">
+            <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <rect x="4" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="19" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <rect x="11.5" y="19" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                <path d="M8.5 13v3a3 3 0 0 0 3 3h1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+                <path d="M23.5 13v3a3 3 0 0 1-3 3h-1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+            </svg>
+            <span class="brand-name">Schema<span class="brand-name-accent">Flex</span></span>
+        </a>
+        <nav class="bar-nav">
+            <a href="/#databases">Databases</a>
+            <a href="/#included">What's included</a>
+            <a href="/#use-cases">Use cases</a>
+            <a href="/#example">Example</a>
+            <a href="/#install">Install</a>
+            <a href="https://github.com/Viewsource-Ltd/SchemaFlex" class="bar-cta">GitHub</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="wrap">
+                <svg class="hero-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                    <rect x="4" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                    <rect x="19" y="6" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                    <rect x="11.5" y="19" width="9" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+                    <path d="M8.5 13v3a3 3 0 0 0 3 3h1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+                    <path d="M23.5 13v3a3 3 0 0 1-3 3h-1" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+                </svg>
+                <h1>Point it at a database.<br />Get back an ERD you can just open.</h1>
+                <p class="lede">
+                    SchemaFlex is a command-line tool that connects to a relational database, reads its
+                    schema, and writes a single self-contained HTML file with an interactive
+                    Entity-Relationship Diagram viewer. Open it in any browser &mdash; no server, no
+                    account, no install for the person you send it to.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" id="primary-download"
+                       href="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest"
+                       data-win="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest/download/schemaflex-win-x64.zip"
+                       data-linux="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest/download/schemaflex-linux-x64.zip"
+                       data-mac="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest/download/schemaflex-osx-arm64.zip">Download</a>
+                    <a class="btn" href="#example">See a live example</a>
+                </div>
+                <p class="hero-note">
+                    Windows, Linux and macOS. PostgreSQL, SQL Server, MySQL/MariaDB and SQLite are all
+                    supported today.
+                    <a href="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest">All platforms &rarr;</a>
+                </p>
+
+                <div class="hero-cmd mono">
+                    <span class="prompt">&gt;</span>
+                    <span class="cmd">schemaflex</span>
+                    <span class="flag">--connection</span>
+                    <span>"Host=localhost;Username=postgres;Database=mydb"</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="what">
+            <div class="wrap">
+                <p class="eyebrow">What it does</p>
+                <h2>A diagram, not a dashboard</h2>
+                <p class="lede">
+                    Run SchemaFlex from a terminal against a connection string and it produces an
+                    <code>.html</code> file &mdash; <code>erd.html</code> by default. That file is the
+                    whole deliverable: the schema is read once, serialized to JSON, and embedded directly
+                    alongside a bundled viewer, so the result is fully portable. Email it, commit it to a
+                    wiki, drop it in a ticket &mdash; whoever opens it sees your tables, columns, keys and
+                    relationships without connecting to anything.
+                </p>
+            </div>
+        </section>
+
+        <section id="databases">
+            <div class="wrap">
+                <p class="eyebrow">Supported databases</p>
+                <h2>Auto-detected from the connection string</h2>
+                <p class="lede">No <code>--provider</code> flag to remember &mdash; SchemaFlex works out which database it's talking to from the shape of the connection string you give it.</p>
+                <div class="grid grid-4">
+                    <div class="card db-card">
+                        <span class="db-logo" style="background:#336791" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true" focusable="false"><path d="M23.5594 14.7228a.5269.5269 0 0 0-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191 1.342-2.0482 2.445-4.522 3.0411-6.8297.2714-1.0507.7982-3.5237.1222-4.7316a1.5641 1.5641 0 0 0-.1509-.235C21.6931.9086 19.8007.0248 17.5099.0005c-1.4947-.0158-2.7705.3461-3.1161.4794a9.449 9.449 0 0 0-.5159-.0816 8.044 8.044 0 0 0-1.3114-.1278c-1.1822-.0184-2.2038.2642-3.0498.8406-.8573-.3211-4.7888-1.645-7.2219.0788C.9359 2.1526.3086 3.8733.4302 6.3043c.0409.818.5069 3.334 1.2423 5.7436.4598 1.5065.9387 2.7019 1.4334 3.582.553.9942 1.1259 1.5933 1.7143 1.7895.4474.1491 1.1327.1441 1.8581-.7279.8012-.9635 1.5903-1.8258 1.9446-2.2069.4351.2355.9064.3625 1.39.3772a.0569.0569 0 0 0 .0004.0041 11.0312 11.0312 0 0 0-.2472.3054c-.3389.4302-.4094.5197-1.5002.7443-.3102.064-1.1344.2339-1.1464.8115-.0025.1224.0329.2309.0919.3268.2269.4231.9216.6097 1.015.6331 1.3345.3335 2.5044.092 3.3714-.6787-.017 2.231.0775 4.4174.3454 5.0874.2212.5529.7618 1.9045 2.4692 1.9043.2505 0 .5263-.0291.8296-.0941 1.7819-.3821 2.5557-1.1696 2.855-2.9059.1503-.8707.4016-2.8753.5388-4.1012.0169-.0703.0357-.1207.057-.1362.0007-.0005.0697-.0471.4272.0307a.3673.3673 0 0 0 .0443.0068l.2539.0223.0149.001c.8468.0384 1.9114-.1426 2.5312-.4308.6438-.2988 1.8057-1.0323 1.5951-1.6698zM2.371 11.8765c-.7435-2.4358-1.1779-4.8851-1.2123-5.5719-.1086-2.1714.4171-3.6829 1.5623-4.4927 1.8367-1.2986 4.8398-.5408 6.108-.13-.0032.0032-.0066.0061-.0098.0094-2.0238 2.044-1.9758 5.536-1.9708 5.7495-.0002.0823.0066.1989.0162.3593.0348.5873.0996 1.6804-.0735 2.9184-.1609 1.1504.1937 2.2764.9728 3.0892.0806.0841.1648.1631.2518.2374-.3468.3714-1.1004 1.1926-1.9025 2.1576-.5677.6825-.9597.5517-1.0886.5087-.3919-.1307-.813-.5871-1.2381-1.3223-.4796-.839-.9635-2.0317-1.4155-3.5126zm6.0072 5.0871c-.1711-.0428-.3271-.1132-.4322-.1772.0889-.0394.2374-.0902.4833-.1409 1.2833-.2641 1.4815-.4506 1.9143-1.0002.0992-.126.2116-.2687.3673-.4426a.3549.3549 0 0 0 .0737-.1298c.1708-.1513.2724-.1099.4369-.0417.156.0646.3078.26.3695.4752.0291.1016.0619.2945-.0452.4444-.9043 1.2658-2.2216 1.2494-3.1676 1.0128zm2.094-3.988-.0525.141c-.133.3566-.2567.6881-.3334 1.003-.6674-.0021-1.3168-.2872-1.8105-.8024-.6279-.6551-.9131-1.5664-.7825-2.5004.1828-1.3079.1153-2.4468.079-3.0586-.005-.0857-.0095-.1607-.0122-.2199.2957-.2621 1.6659-.9962 2.6429-.7724.4459.1022.7176.4057.8305.928.5846 2.7038.0774 3.8307-.3302 4.7363-.084.1866-.1633.3629-.2311.5454zm7.3637 4.5725c-.0169.1768-.0358.376-.0618.5959l-.146.4383a.3547.3547 0 0 0-.0182.1077c-.0059.4747-.054.6489-.115.8693-.0634.2292-.1353.4891-.1794 1.0575-.11 1.4143-.8782 2.2267-2.4172 2.5565-1.5155.3251-1.7843-.4968-2.0212-1.2217a6.5824 6.5824 0 0 0-.0769-.2266c-.2154-.5858-.1911-1.4119-.1574-2.5551.0165-.5612-.0249-1.9013-.3302-2.6462.0044-.2932.0106-.5909.019-.8918a.3529.3529 0 0 0-.0153-.1126 1.4927 1.4927 0 0 0-.0439-.208c-.1226-.4283-.4213-.7866-.7797-.9351-.1424-.059-.4038-.1672-.7178-.0869.067-.276.1831-.5875.309-.9249l.0529-.142c.0595-.16.134-.3257.213-.5012.4265-.9476 1.0106-2.2453.3766-5.1772-.2374-1.0981-1.0304-1.6343-2.2324-1.5098-.7207.0746-1.3799.3654-1.7088.5321a5.6716 5.6716 0 0 0-.1958.1041c.0918-1.1064.4386-3.1741 1.7357-4.4823a4.0306 4.0306 0 0 1 .3033-.276.3532.3532 0 0 0 .1447-.0644c.7524-.5706 1.6945-.8506 2.802-.8325.4091.0067.8017.0339 1.1742.081 1.939.3544 3.2439 1.4468 4.0359 2.3827.8143.9623 1.2552 1.9315 1.4312 2.4543-1.3232-.1346-2.2234.1268-2.6797.779-.9926 1.4189.543 4.1729 1.2811 5.4964.1353.2426.2522.4522.2889.5413.2403.5825.5515.9713.7787 1.2552.0696.087.1372.1714.1885.245-.4008.1155-1.1208.3825-1.0552 1.717-.0123.1563-.0423.4469-.0834.8148-.0461.2077-.0702.4603-.0994.7662zm.8905-1.6211c-.0405-.8316.2691-.9185.5967-1.0105a2.8566 2.8566 0 0 0 .135-.0406 1.202 1.202 0 0 0 .1342.103c.5703.3765 1.5823.4213 3.0068.1344-.2016.1769-.5189.3994-.9533.6011-.4098.1903-1.0957.333-1.7473.3636-.7197.0336-1.0859-.0807-1.1721-.151zm.5695-9.2712c-.0059.3508-.0542.6692-.1054 1.0017-.055.3576-.112.7274-.1264 1.1762-.0142.4368.0404.8909.0932 1.3301.1066.887.216 1.8003-.2075 2.7014a3.5272 3.5272 0 0 1-.1876-.3856c-.0527-.1276-.1669-.3326-.3251-.6162-.6156-1.1041-2.0574-3.6896-1.3193-4.7446.3795-.5427 1.3408-.5661 2.1781-.463zm.2284 7.0137a12.3762 12.3762 0 0 0-.0853-.1074l-.0355-.0444c.7262-1.1995.5842-2.3862.4578-3.4385-.0519-.4318-.1009-.8396-.0885-1.2226.0129-.4061.0666-.7543.1185-1.0911.0639-.415.1288-.8443.1109-1.3505.0134-.0531.0188-.1158.0118-.1902-.0457-.4855-.5999-1.938-1.7294-3.253-.6076-.7073-1.4896-1.4972-2.6889-2.0395.5251-.1066 1.2328-.2035 2.0244-.1859 2.0515.0456 3.6746.8135 4.8242 2.2824a.908.908 0 0 1 .0667.1002c.7231 1.3556-.2762 6.2751-2.9867 10.5405zm-8.8166-6.1162c-.025.1794-.3089.4225-.6211.4225a.5821.5821 0 0 1-.0809-.0056c-.1873-.026-.3765-.144-.5059-.3156-.0458-.0605-.1203-.178-.1055-.2844.0055-.0401.0261-.0985.0925-.1488.1182-.0894.3518-.1226.6096-.0867.3163.0441.6426.1938.6113.4186zm7.9305-.4114c.0111.0792-.049.201-.1531.3102-.0683.0717-.212.1961-.4079.2232a.5456.5456 0 0 1-.075.0052c-.2935 0-.5414-.2344-.5607-.3717-.024-.1765.2641-.3106.5611-.352.297-.0414.6111.0088.6356.1851z"></path></svg>
+                        </span>
+                        <div>
+                            <span class="db-name">PostgreSQL</span>
+                            <span class="db-driver">via Npgsql</span>
+                        </div>
+                    </div>
+                    <div class="card db-card">
+                        <span class="db-logo db-logo-img" aria-hidden="true">
+                            <img src="/images/logos/sqlserver.png" alt="" width="512" height="512" />
+                        </span>
+                        <div>
+                            <span class="db-name">SQL Server</span>
+                            <span class="db-driver">via Microsoft.Data.SqlClient</span>
+                        </div>
+                    </div>
+                    <div class="card db-card">
+                        <span class="db-logo" style="background:#00758f" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true" focusable="false"><path d="M16.405 5.501c-.115 0-.193.014-.274.033v.013h.014c.054.104.146.18.214.273.054.107.1.214.154.32l.014-.015c.094-.066.14-.172.14-.333-.04-.047-.046-.094-.08-.14-.04-.067-.126-.1-.18-.153zM5.77 18.695h-.927a50.854 50.854 0 00-.27-4.41h-.008l-1.41 4.41H2.45l-1.4-4.41h-.01a72.892 72.892 0 00-.195 4.41H0c.055-1.966.192-3.81.41-5.53h1.15l1.335 4.064h.008l1.347-4.064h1.095c.242 2.015.384 3.86.428 5.53zm4.017-4.08c-.378 2.045-.876 3.533-1.492 4.46-.482.716-1.01 1.073-1.583 1.073-.153 0-.34-.046-.566-.138v-.494c.11.017.24.026.386.026.268 0 .483-.075.647-.222.197-.18.295-.382.295-.605 0-.155-.077-.47-.23-.944L6.23 14.615h.91l.727 2.36c.164.536.233.91.205 1.123.4-1.064.678-2.227.835-3.483zm12.325 4.08h-2.63v-5.53h.885v4.85h1.745zm-3.32.135l-1.016-.5c.09-.076.177-.158.255-.25.433-.506.648-1.258.648-2.253 0-1.83-.718-2.746-2.155-2.746-.704 0-1.254.232-1.65.697-.43.508-.646 1.256-.646 2.245 0 .972.19 1.686.574 2.14.35.41.877.615 1.583.615.264 0 .506-.033.725-.098l1.325.772.36-.622zM15.5 17.588c-.225-.36-.337-.94-.337-1.736 0-1.393.424-2.09 1.27-2.09.443 0 .77.167.977.5.224.362.336.936.336 1.723 0 1.404-.424 2.108-1.27 2.108-.445 0-.77-.167-.978-.5zm-1.658-.425c0 .47-.172.856-.516 1.156-.344.3-.803.45-1.384.45-.543 0-1.064-.172-1.573-.515l.237-.476c.438.22.833.328 1.19.328.332 0 .593-.073.783-.22a.754.754 0 00.3-.615c0-.33-.23-.61-.648-.845-.388-.213-1.163-.657-1.163-.657-.422-.307-.632-.636-.632-1.177 0-.45.157-.81.47-1.085.315-.278.72-.415 1.22-.415.512 0 .98.136 1.4.41l-.213.476a2.726 2.726 0 00-1.064-.23c-.283 0-.502.068-.654.206a.685.685 0 00-.248.524c0 .328.234.61.666.85.393.215 1.187.67 1.187.67.433.305.648.63.648 1.168zm9.382-5.852c-.535-.014-.95.04-1.297.188-.1.04-.26.04-.274.167.055.053.063.14.11.214.08.134.218.313.346.407.14.11.28.216.427.31.26.16.555.255.81.416.145.094.293.213.44.313.073.05.12.14.214.172v-.02c-.046-.06-.06-.147-.105-.214-.067-.067-.134-.127-.2-.193a3.223 3.223 0 00-.695-.675c-.214-.146-.682-.35-.77-.595l-.013-.014c.146-.013.32-.066.46-.106.227-.06.435-.047.67-.106.106-.027.213-.06.32-.094v-.06c-.12-.12-.21-.283-.334-.395a8.867 8.867 0 00-1.104-.823c-.21-.134-.476-.22-.697-.334-.08-.04-.214-.06-.26-.127-.12-.146-.19-.34-.275-.514a17.69 17.69 0 01-.547-1.163c-.12-.262-.193-.523-.34-.763-.69-1.137-1.437-1.826-2.586-2.5-.247-.14-.543-.2-.856-.274-.167-.008-.334-.02-.5-.027-.11-.047-.216-.174-.31-.235-.38-.24-1.364-.76-1.644-.072-.18.434.267.862.422 1.082.115.153.26.328.34.5.047.116.06.235.107.356.106.294.207.622.347.897.073.14.153.287.247.413.054.073.146.107.167.227-.094.136-.1.334-.154.5-.24.757-.146 1.693.194 2.25.107.166.362.534.703.393.3-.12.234-.5.32-.835.02-.08.007-.133.048-.187v.015c.094.188.188.367.274.555.206.328.566.668.867.895.16.12.287.328.487.402v-.02h-.015c-.043-.058-.1-.086-.154-.133a3.445 3.445 0 01-.35-.4 8.76 8.76 0 01-.747-1.218c-.11-.21-.202-.436-.29-.643-.04-.08-.04-.2-.107-.24-.1.146-.247.273-.32.453-.127.288-.14.642-.188 1.01-.027.007-.014 0-.027.014-.214-.052-.287-.274-.367-.46-.2-.475-.233-1.238-.06-1.785.047-.14.247-.582.167-.716-.042-.127-.174-.2-.247-.303a2.478 2.478 0 01-.24-.427c-.16-.374-.24-.788-.414-1.162-.08-.173-.22-.354-.334-.513-.127-.18-.267-.307-.368-.52-.033-.073-.08-.194-.027-.274.014-.054.042-.075.094-.09.088-.072.335.022.422.062.247.1.455.194.662.334.094.066.195.193.315.226h.14c.214.047.455.014.655.073.355.114.675.28.962.46a5.953 5.953 0 012.085 2.286c.08.154.115.295.188.455.14.33.313.663.455.982.14.315.275.636.476.897.1.14.502.213.682.286.133.06.34.115.46.188.23.14.454.3.67.454.11.076.443.243.463.378z"></path></svg>
+                        </span>
+                        <div>
+                            <span class="db-name">MySQL / MariaDB</span>
+                            <span class="db-driver">via MySqlConnector</span>
+                        </div>
+                    </div>
+                    <div class="card db-card">
+                        <span class="db-logo" style="background:#003b57" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true" focusable="false"><path d="M21.678.521c-1.032-.92-2.28-.55-3.513.544a8.71 8.71 0 0 0-.547.535c-2.109 2.237-4.066 6.38-4.674 9.544.237.48.422 1.093.544 1.561a13.044 13.044 0 0 1 .164.703s-.019-.071-.096-.296l-.05-.146a1.689 1.689 0 0 0-.033-.08c-.138-.32-.518-.995-.686-1.289-.143.423-.27.818-.376 1.176.484.884.778 2.4.778 2.4s-.025-.099-.147-.442c-.107-.303-.644-1.244-.772-1.464-.217.804-.304 1.346-.226 1.478.152.256.296.698.422 1.186.286 1.1.485 2.44.485 2.44l.017.224a22.41 22.41 0 0 0 .056 2.748c.095 1.146.273 2.13.5 2.657l.155-.084c-.334-1.038-.47-2.399-.41-3.967.09-2.398.642-5.29 1.661-8.304 1.723-4.55 4.113-8.201 6.3-9.945-1.993 1.8-4.692 7.63-5.5 9.788-.904 2.416-1.545 4.684-1.931 6.857.666-2.037 2.821-2.912 2.821-2.912s1.057-1.304 2.292-3.166c-.74.169-1.955.458-2.362.629-.6.251-.762.337-.762.337s1.945-1.184 3.613-1.72C21.695 7.9 24.195 2.767 21.678.521m-18.573.543A1.842 1.842 0 0 0 1.27 2.9v16.608a1.84 1.84 0 0 0 1.835 1.834h9.418a22.953 22.953 0 0 1-.052-2.707c-.006-.062-.011-.141-.016-.2a27.01 27.01 0 0 0-.473-2.378c-.121-.47-.275-.898-.369-1.057-.116-.197-.098-.31-.097-.432 0-.12.015-.245.037-.386a9.98 9.98 0 0 1 .234-1.045l.217-.028c-.017-.035-.014-.065-.031-.097l-.041-.381a32.8 32.8 0 0 1 .382-1.194l.2-.019c-.008-.016-.01-.038-.018-.053l-.043-.316c.63-3.28 2.587-7.443 4.8-9.791.066-.069.133-.128.198-.194Z"></path></svg>
+                        </span>
+                        <div>
+                            <span class="db-name">SQLite</span>
+                            <span class="db-driver">via Microsoft.Data.Sqlite</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="included">
+            <div class="wrap">
+                <p class="eyebrow">What's included</p>
+                <h2>Everything the viewer needs to explain your schema</h2>
+                <p class="lede">For every table in the target schema, SchemaFlex reads:</p>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="1.5"></rect><path d="M3 9h18M9 9v11"></path></svg>Tables &amp; columns</h3>
+                        <p>Names, data types, nullability and default values for every column.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.5 5.5l-9 9a3 3 0 104 4l9-9"></path><circle cx="17" cy="7" r="2.5"></circle></svg>Primary keys</h3>
+                        <p>Marked on every table so the identity of each row is obvious at a glance.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8 16.5L16 7.5"></path></svg>Foreign keys &amp; relationships</h3>
+                        <p>Drawn as edges between tables, so the diagram is a real ERD, not just a table list.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h10M4 18h13"></path></svg>Indexes</h3>
+                        <p>Including which columns each index covers and whether it's unique.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>Check constraints</h3>
+                        <p>The rule text is shown next to the column it constrains.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"></path></svg>Triggers</h3>
+                        <p>Listed against the table they fire on, so side effects aren't a surprise later.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"></circle><circle cx="5" cy="6" r="1.6"></circle><circle cx="19" cy="6" r="1.6"></circle><circle cx="5" cy="18" r="1.6"></circle><circle cx="19" cy="18" r="1.6"></circle></svg>Enum types</h3>
+                        <p>Where the provider supports them, with every member value listed.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>One self-contained file</h3>
+                        <p>The schema and the viewer that renders it ship together &mdash; nothing else to host.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="14" rx="1.5"></rect><path d="M8 21h8M12 17v4"></path></svg>Export PNG</h3>
+                        <p>One click rasterizes the whole diagram &mdash; not just the visible viewport &mdash; to a downloadable image.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h8l4 4v12a1 1 0 01-1 1H8a1 1 0 01-1-1V5a1 1 0 011-1z"></path><path d="M16 4v4h4"></path><path d="M9 13h6M9 16h4"></path></svg>View DDL</h3>
+                        <p><code>CREATE TABLE</code>/<code>ALTER TABLE</code> statements reconstructed in the source database's own dialect, ready to copy or download as <code>.sql</code>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="use-cases">
+            <div class="wrap">
+                <p class="eyebrow">Use cases</p>
+                <h2>Where a portable ERD actually helps</h2>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v4M12 17v4M4.2 7.8l3.5 2M16.3 14.2l3.5 2M4.2 16.2l3.5-2M16.3 9.8l3.5-2"></path><circle cx="12" cy="12" r="3"></circle></svg>Tracking schema drift in CI/CD</h3>
+                        <p>Generate the ERD as a build step and publish it as an artifact on every merge.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"></circle><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"></path></svg>Onboarding new developers</h3>
+                        <p>Hand new hires one file to explore before their database access is even approved.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-3"></path><path d="M18 3l3 3-9.5 9.5-3.8.8.8-3.8z"></path></svg>Reviewing migration PRs</h3>
+                        <p>Attach a regenerated diagram so reviewers see the resulting schema, not just the diff.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h8l4 4v12a1 1 0 01-1 1H8a1 1 0 01-1-1V5a1 1 0 011-1z"></path><path d="M16 4v4h4"></path><path d="M9 13h6M9 17h4"></path></svg>Snapshots before a refactor</h3>
+                        <p>Archive a dated diagram before a big migration or vendor switch, for later reference.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path></svg>Briefing non-technical stakeholders</h3>
+                        <p>Share a link so anyone with a browser can see how the data fits together.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v2a1.5 1.5 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a1.5 1.5 0 000-4z"></path></svg>Attaching to support tickets</h3>
+                        <p>Drop the file into a ticket instead of describing the schema over chat.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>Reaching a database behind a bastion host</h3>
+                        <p>Tunnel over SSH with <code>--ssh-host</code> to diagram a database that's only reachable from inside a private network.</p>
+                    </div>
+                    <div class="card">
+                        <h3><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"></path><path d="M19 15l.7 1.9L21.6 17.6l-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"></path></svg>Grounding AI coding assistants</h3>
+                        <p>Give an AI tool an accurate schema to work from instead of pasted-in migration files.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="example">
+            <div class="wrap example-block">
+                <p class="eyebrow">Example output</p>
+                <h2>Real output, generated by SchemaFlex</h2>
+                <p class="lede">
+                    This isn't a mockup &mdash; it's the actual output of <code>schemaflex</code>, run
+                    against a small sample database (customers, orders, products, categories, with foreign
+                    keys, check constraints, indexes and two triggers). Pan, zoom and click a table below,
+                    exactly as you would with a diagram generated from your own schema.
+                </p>
+
+                <div id="example-panel-erd" class="example-panel">
+                    <div class="example-frame-wrap">
+                        <div class="example-frame-bar">
+                            <span class="example-frame-dots"><span></span><span></span><span></span></span>
+                            <span class="mono">erd.html</span>
+                            <a href="/examples/sample-erd.html" target="_blank" rel="noopener">Open full-screen &rarr;</a>
+                        </div>
+                        <iframe class="example-frame" src="/examples/sample-erd.html" title="Live SchemaFlex example ERD" loading="lazy"></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="install">
+            <div class="wrap">
+                <p class="eyebrow">Install</p>
+                <h2>Windows, Linux and macOS</h2>
+                <p class="lede">
+                    SchemaFlex ships as a single self-contained executable for each platform &mdash; no
+                    .NET runtime to install first. Grab the build for your OS from
+                    <a href="https://github.com/Viewsource-Ltd/SchemaFlex/releases/latest">the latest release</a>
+                    (Apple Silicon for macOS &mdash; Intel Mac support is on the way).
+                </p>
+                <pre><code class="mono"># Windows
+schemaflex.exe --connection "&lt;your connection string&gt;"
+
+# Linux / macOS
+./schemaflex --connection "&lt;your connection string&gt;"</code></pre>
+            </div>
+        </section>
+
+        <section id="usage">
+            <div class="wrap">
+                <p class="eyebrow">Usage</p>
+                <h2>Options</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Option</th>
+                                <th scope="col">Required</th>
+                                <th scope="col">Default</th>
+                                <th scope="col">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>--connection</code></td>
+                                <td>Yes</td>
+                                <td>&mdash;</td>
+                                <td>The database connection string. The provider is auto-detected.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--output</code></td>
+                                <td>No</td>
+                                <td><code>erd.html</code></td>
+                                <td>Path to write the generated HTML file to.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--schema</code></td>
+                                <td>No</td>
+                                <td>provider default</td>
+                                <td>
+                                    The schema to inspect &mdash; <code>public</code> (PostgreSQL),
+                                    <code>dbo</code> (SQL Server), the database name (MySQL/MariaDB), or
+                                    <code>main</code> (SQLite).
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><code>--include-tables</code></td>
+                                <td>No</td>
+                                <td>(all tables)</td>
+                                <td>
+                                    Only include tables matching these comma-separated patterns.
+                                    <code>*</code> and <code>%</code> both match any run of characters.
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><code>--exclude-tables</code></td>
+                                <td>No</td>
+                                <td>(none)</td>
+                                <td>
+                                    Exclude tables matching these comma-separated patterns (same wildcard
+                                    syntax). Applied after <code>--include-tables</code>.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 2.5rem;">Examples</h3>
+                <pre><code class="mono"># PostgreSQL, writing to the default erd.html
+schemaflex --connection "Host=localhost;Username=postgres;Password=secret;Database=mydb"
+
+# SQL Server, writing to a custom path
+schemaflex --connection "Data Source=localhost;Initial Catalog=MyDb;Integrated Security=true;TrustServerCertificate=true" --output diagrams/mydb-erd.html
+
+# SQLite
+schemaflex --connection "Data Source=app.db" --output app-schema.html
+
+# MySQL, with an explicit schema
+schemaflex --connection "Server=localhost;Uid=root;Pwd=secret" --schema mydb --output mydb.html
+
+# Limit the diagram to a set of tables, excluding audit/temp tables
+schemaflex --connection "Data Source=app.db" --include-tables "user*,order*" --exclude-tables "%_audit"</code></pre>
+
+                <h3 style="margin-top: 2.5rem;">SSH tunnel options</h3>
+                <p class="lede">
+                    For a database that's only reachable through a jump host (not applicable to SQLite,
+                    and the connection string's host/port must be reachable from the SSH host itself):
+                </p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Option</th>
+                                <th scope="col">Default</th>
+                                <th scope="col">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>--ssh-host</code></td>
+                                <td>&mdash;</td>
+                                <td>SSH jump host.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--ssh-port</code></td>
+                                <td><code>22</code></td>
+                                <td>SSH port.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--ssh-user</code></td>
+                                <td>&mdash;</td>
+                                <td>SSH username. Required when <code>--ssh-host</code> is set.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--ssh-key</code></td>
+                                <td>&mdash;</td>
+                                <td>Path to a private key file. Use this or <code>--ssh-password</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--ssh-key-passphrase</code></td>
+                                <td>&mdash;</td>
+                                <td>Passphrase for <code>--ssh-key</code>, if it has one.</td>
+                            </tr>
+                            <tr>
+                                <td><code>--ssh-password</code></td>
+                                <td>&mdash;</td>
+                                <td>SSH password. Use this or <code>--ssh-key</code>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <pre><code class="mono">schemaflex --connection "Host=10.0.4.12;Username=postgres;Password=secret;Database=mydb" \
+  --ssh-host bastion.example.com --ssh-user ec2-user --ssh-key ~/.ssh/id_ed25519</code></pre>
+            </div>
+        </section>
+
+        <section id="privacy-note">
+            <div class="wrap">
+                <p class="eyebrow">Privacy</p>
+                <h2>Nothing leaves your machine</h2>
+                <p class="lede">
+                    SchemaFlex is a local CLI tool with no server component. It makes no network request
+                    other than the database connection you give it, and sends no telemetry. The
+                    connection string, the schema, and everything read from your database stay on your
+                    machine &mdash; the only thing it writes anywhere is the HTML file you asked for.
+                    Read the full <a href="/privacy.html">privacy notice</a>.
+                </p>
+            </div>
+        </section>
+
+        <section id="support">
+            <div class="wrap">
+                <p class="eyebrow">Support</p>
+                <h2>Free to use, always</h2>
+                <p class="lede">
+                    SchemaFlex costs nothing and there's no catch coming later. If it saved you time
+                    chasing down a schema, a coffee is always appreciated but never expected.
+                </p>
+                <div class="hero-actions" style="justify-content: flex-start;">
+                    <a class="btn" href="https://buymeacoffee.com/andyrobinson" target="_blank" rel="noopener">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 9h11v5a4 4 0 01-4 4H9a4 4 0 01-4-4z"></path><path d="M16 10h1.5a2.5 2.5 0 010 5H16"></path><path d="M8 3.5c-.7.8-.7 1.7 0 2.5M11.5 3.5c-.7.8-.7 1.7 0 2.5"></path></svg>
+                        Buy me a coffee
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="wrap footer-row">
+            <span>&copy; {{YEAR}} Viewsource Ltd. SchemaFlex is a local CLI tool. &middot; Last updated {{LAST_UPDATED}}</span>
+            <span class="footer-links">
+                <a href="/privacy.html">Privacy</a>
+                <a href="https://github.com/Viewsource-Ltd/SchemaFlex">GitHub</a>
+                <a href="https://buymeacoffee.com/andyrobinson" target="_blank" rel="noopener">Buy me a coffee</a>
+            </span>
+        </div>
+    </footer>
+
+    <script src="/js/nav.js" defer></script>
+    <script src="/js/download.js" defer></script>
+</body>
+</html>
