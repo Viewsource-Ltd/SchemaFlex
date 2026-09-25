@@ -7,4 +7,5 @@ public record Table(
     List<CheckConstraint> CheckConstraints,
     List<IndexInfo> Indexes,
     List<TriggerInfo> Triggers,
-    string? Comment);
+    string? Comment,
+    bool IsView = false);

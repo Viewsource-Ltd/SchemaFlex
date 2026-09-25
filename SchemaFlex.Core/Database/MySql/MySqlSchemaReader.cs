@@ -10,7 +10,9 @@ public class MySqlSchemaReader : ISchemaReader
         await using var conn = new MySqlConnection(connectionString);
         await conn.OpenAsync(token);
 
-        var tableNames = await GetTableNamesAsync(conn, schema, token);
+        var tableEntries = await GetTableNamesAsync(conn, schema, token);
+        var tableNames = tableEntries.Select(t => t.Name).ToList();
+        var viewNames = new HashSet<string>(tableEntries.Where(t => t.IsView).Select(t => t.Name), StringComparer.OrdinalIgnoreCase);
 
         var (primaryKeysByTable, uniqueColumnsByTable) = await GetKeyConstraintColumnsAsync(conn, schema, token);
         var foreignKeysByTable = await GetForeignKeysAsync(conn, schema, token);
@@ -29,7 +31,8 @@ public class MySqlSchemaReader : ISchemaReader
                 checkConstraintsByTable.TryGetValue(name, out var checks) ? checks : new List<CheckConstraint>(),
                 indexesByTable.TryGetValue(name, out var indexes) ? indexes : new List<IndexInfo>(),
                 triggersByTable.TryGetValue(name, out var triggers) ? triggers : new List<TriggerInfo>(),
-                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null))
+                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null,
+                viewNames.Contains(name)))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -39,19 +42,22 @@ public class MySqlSchemaReader : ISchemaReader
         return new SchemaData(schema, DateTimeOffset.UtcNow, tables, new List<EnumType>(), DatabaseProvider.MySql);
     }
 
-    private static async Task<List<string>> GetTableNamesAsync(MySqlConnection conn, string schema, CancellationToken token)
+    private static async Task<List<(string Name, bool IsView)>> GetTableNamesAsync(MySqlConnection conn, string schema, CancellationToken token)
     {
-        var tableNames = new List<string>();
+        var tableNames = new List<(string Name, bool IsView)>();
 
         await using var cmd = new MySqlCommand(
-            "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @schema AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;",
+            @"SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES
+              WHERE TABLE_SCHEMA = @schema AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+              ORDER BY TABLE_NAME;",
             conn);
         cmd.Parameters.AddWithValue("@schema", schema);
 
         await using var reader = await cmd.ExecuteReaderAsync(token);
         while (await reader.ReadAsync(token))
         {
-            tableNames.Add(reader.GetString(0));
+            var isView = string.Equals(reader.GetString(1), "VIEW", StringComparison.OrdinalIgnoreCase);
+            tableNames.Add((reader.GetString(0), isView));
         }
 
         return tableNames;

@@ -10,7 +10,9 @@ public class PostgresSchemaReader : ISchemaReader
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await using var conn = await dataSource.OpenConnectionAsync(token);
 
-        var tableNames = await GetTableNamesAsync(conn, schema, token);
+        var tableEntries = await GetTableNamesAsync(conn, schema, token);
+        var tableNames = tableEntries.Select(t => t.Name).ToList();
+        var viewNames = new HashSet<string>(tableEntries.Where(t => t.IsView).Select(t => t.Name), StringComparer.OrdinalIgnoreCase);
 
         var primaryKeysByTable = await GetPrimaryKeysAsync(conn, schema, token);
         var uniqueColumnsByTable = await GetUniqueColumnsAsync(conn, schema, token);
@@ -31,26 +33,30 @@ public class PostgresSchemaReader : ISchemaReader
                 checkConstraintsByTable.TryGetValue(name, out var checks) ? checks : new List<CheckConstraint>(),
                 indexesByTable.TryGetValue(name, out var indexes) ? indexes : new List<IndexInfo>(),
                 triggersByTable.TryGetValue(name, out var triggers) ? triggers : new List<TriggerInfo>(),
-                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null))
+                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null,
+                viewNames.Contains(name)))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         return new SchemaData(schema, DateTimeOffset.UtcNow, tables, enums, DatabaseProvider.PostgreSql);
     }
 
-    private static async Task<List<string>> GetTableNamesAsync(NpgsqlConnection conn, string schema, CancellationToken token)
+    private static async Task<List<(string Name, bool IsView)>> GetTableNamesAsync(NpgsqlConnection conn, string schema, CancellationToken token)
     {
-        var tableNames = new List<string>();
+        var tableNames = new List<(string Name, bool IsView)>();
 
         await using var cmd = new NpgsqlCommand(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = @schema AND table_type = 'BASE TABLE' ORDER BY table_name;",
+            @"SELECT table_name, table_type FROM information_schema.tables
+              WHERE table_schema = @schema AND table_type IN ('BASE TABLE', 'VIEW')
+              ORDER BY table_name;",
             conn);
         cmd.Parameters.AddWithValue("schema", schema);
 
         await using var reader = await cmd.ExecuteReaderAsync(token);
         while (await reader.ReadAsync(token))
         {
-            tableNames.Add(reader.GetString(0));
+            var isView = string.Equals(reader.GetString(1), "VIEW", StringComparison.OrdinalIgnoreCase);
+            tableNames.Add((reader.GetString(0), isView));
         }
 
         return tableNames;
@@ -191,7 +197,7 @@ public class PostgresSchemaReader : ISchemaReader
               FROM pg_catalog.pg_class c
               JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
               JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = 0
-              WHERE n.nspname = @schema AND c.relkind = 'r';",
+              WHERE n.nspname = @schema AND c.relkind IN ('r', 'v');",
             conn);
         cmd.Parameters.AddWithValue("schema", schema);
 
@@ -215,7 +221,7 @@ public class PostgresSchemaReader : ISchemaReader
               JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
               JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
               JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
-              WHERE n.nspname = @schema AND c.relkind = 'r';",
+              WHERE n.nspname = @schema AND c.relkind IN ('r', 'v');",
             conn);
         cmd.Parameters.AddWithValue("schema", schema);
 

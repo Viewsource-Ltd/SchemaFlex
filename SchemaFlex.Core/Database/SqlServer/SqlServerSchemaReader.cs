@@ -10,7 +10,9 @@ public class SqlServerSchemaReader : ISchemaReader
         await using var conn = new SqlConnection(connectionString);
         await conn.OpenAsync(token);
 
-        var tableNames = await GetTableNamesAsync(conn, schema, token);
+        var tableEntries = await GetTableNamesAsync(conn, schema, token);
+        var tableNames = tableEntries.Select(t => t.Name).ToList();
+        var viewNames = new HashSet<string>(tableEntries.Where(t => t.IsView).Select(t => t.Name), StringComparer.OrdinalIgnoreCase);
 
         var (primaryKeysByTable, uniqueColumnsByTable) = await GetKeyConstraintColumnsAsync(conn, schema, token);
         var foreignKeysByTable = await GetForeignKeysAsync(conn, schema, token);
@@ -29,7 +31,8 @@ public class SqlServerSchemaReader : ISchemaReader
                 checkConstraintsByTable.TryGetValue(name, out var checks) ? checks : new List<CheckConstraint>(),
                 indexesByTable.TryGetValue(name, out var indexes) ? indexes : new List<IndexInfo>(),
                 triggersByTable.TryGetValue(name, out var triggers) ? triggers : new List<TriggerInfo>(),
-                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null))
+                tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null,
+                viewNames.Contains(name)))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -37,23 +40,23 @@ public class SqlServerSchemaReader : ISchemaReader
         return new SchemaData(schema, DateTimeOffset.UtcNow, tables, new List<EnumType>(), DatabaseProvider.SqlServer);
     }
 
-    private static async Task<List<string>> GetTableNamesAsync(SqlConnection conn, string schema, CancellationToken token)
+    private static async Task<List<(string Name, bool IsView)>> GetTableNamesAsync(SqlConnection conn, string schema, CancellationToken token)
     {
-        var tableNames = new List<string>();
+        var tableNames = new List<(string Name, bool IsView)>();
 
         await using var cmd = new SqlCommand(
-            @"SELECT t.name
-              FROM sys.tables t
-              JOIN sys.schemas s ON s.schema_id = t.schema_id
-              WHERE s.name = @schema AND t.is_ms_shipped = 0
-              ORDER BY t.name;",
+            @"SELECT o.name, CASE WHEN o.type = 'V' THEN 1 ELSE 0 END AS is_view
+              FROM sys.objects o
+              JOIN sys.schemas s ON s.schema_id = o.schema_id
+              WHERE s.name = @schema AND o.type IN ('U', 'V') AND o.is_ms_shipped = 0
+              ORDER BY o.name;",
             conn);
         cmd.Parameters.AddWithValue("@schema", schema);
 
         await using var reader = await cmd.ExecuteReaderAsync(token);
         while (await reader.ReadAsync(token))
         {
-            tableNames.Add(reader.GetString(0));
+            tableNames.Add((reader.GetString(0), reader.GetInt32(1) != 0));
         }
 
         return tableNames;
@@ -90,7 +93,7 @@ public class SqlServerSchemaReader : ISchemaReader
                      c.is_nullable, c.is_identity, dc.definition AS column_default,
                      cc.definition AS generation_expression
               FROM sys.columns c
-              JOIN sys.tables t ON t.object_id = c.object_id
+              JOIN sys.objects t ON t.object_id = c.object_id AND t.type IN ('U', 'V')
               JOIN sys.schemas s ON s.schema_id = t.schema_id
               JOIN sys.types ty ON ty.user_type_id = c.user_type_id
               LEFT JOIN sys.default_constraints dc ON dc.object_id = c.default_object_id
@@ -343,10 +346,10 @@ public class SqlServerSchemaReader : ISchemaReader
 
         await using var cmd = new SqlCommand(
             @"SELECT t.name AS table_name, CAST(ep.value AS NVARCHAR(MAX))
-              FROM sys.tables t
+              FROM sys.objects t
               JOIN sys.schemas s ON s.schema_id = t.schema_id
               JOIN sys.extended_properties ep ON ep.major_id = t.object_id AND ep.minor_id = 0 AND ep.name = 'MS_Description'
-              WHERE s.name = @schema;",
+              WHERE s.name = @schema AND t.type IN ('U', 'V');",
             conn);
         cmd.Parameters.AddWithValue("@schema", schema);
 
@@ -367,7 +370,7 @@ public class SqlServerSchemaReader : ISchemaReader
         await using var cmd = new SqlCommand(
             @"SELECT t.name AS table_name, c.name AS column_name, CAST(ep.value AS NVARCHAR(MAX))
               FROM sys.columns c
-              JOIN sys.tables t ON t.object_id = c.object_id
+              JOIN sys.objects t ON t.object_id = c.object_id AND t.type IN ('U', 'V')
               JOIN sys.schemas s ON s.schema_id = t.schema_id
               JOIN sys.extended_properties ep ON ep.major_id = t.object_id AND ep.minor_id = c.column_id AND ep.name = 'MS_Description'
               WHERE s.name = @schema;",

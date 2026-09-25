@@ -577,6 +577,31 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+.table-item-view-tag {
+    flex: none;
+    padding: 0.0625rem 0.25rem;
+    border-radius: 4px;
+    background: var(--sf-chrome-hover);
+    color: var(--sf-muted);
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.table-item-badges {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--sf-faint);
+    font-size: 0.6875rem;
+}
+
+.table-item-badges .is-warning {
+    color: var(--sf-warn);
+}
+
 .sidebar-empty {
     padding: 1rem 0.75rem;
     color: var(--sf-faint);
@@ -867,6 +892,7 @@ body {
 .toolbar {
     position: absolute;
     left: 0.75rem;
+    right: 0.75rem;
     bottom: 0.75rem;
     display: flex;
     align-items: center;
@@ -877,6 +903,9 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     z-index: 5;
+    max-width: max-content;
+    overflow-x: auto;
+    scrollbar-width: thin;
 }
 
 :root[data-theme="light"] .toolbar {
@@ -915,6 +944,18 @@ body {
     font-size: 0.6875rem;
     z-index: 5;
     pointer-events: none;
+}
+
+@media (max-width: 40rem) {
+    /* Not enough width for the toolbar and the hint to sit side by side on the
+       same row, so the hint moves above the toolbar instead of overlapping it. */
+    .minimap-hint {
+        top: 0.75rem;
+        right: 0.75rem;
+        bottom: auto;
+        left: 0.75rem;
+        text-align: center;
+    }
 }
 
 .empty-state {
@@ -1260,7 +1301,8 @@ const schemaDataB = __SCHEMA_JSON_B__;
                 checkConstraints: checkConstraints,
                 indexes: indexes,
                 triggers: triggers,
-                comment: typeof t.comment === "string" && t.comment ? t.comment : null
+                comment: typeof t.comment === "string" && t.comment ? t.comment : null,
+                isView: !!t.isView
             });
         });
 
@@ -1441,7 +1483,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
             tables.push({
                 name: tb.name, status: status, a: ta, b: tb,
                 columns: columns, foreignKeys: foreignKeys, checkConstraints: checkConstraints,
-                indexes: indexes, triggers: triggers, comment: tb.comment
+                indexes: indexes, triggers: triggers, comment: tb.comment, isView: tb.isView
             });
         });
 
@@ -1456,7 +1498,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
             tables.push({
                 name: ta.name, status: "removed", a: ta, b: null,
                 columns: columns, foreignKeys: foreignKeys, checkConstraints: checkConstraints,
-                indexes: indexes, triggers: triggers, comment: ta.comment
+                indexes: indexes, triggers: triggers, comment: ta.comment, isView: ta.isView
             });
         });
 
@@ -1604,6 +1646,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
                 indexes: indexes,
                 triggers: triggers,
                 comment: dt.comment,
+                isView: dt.isView,
                 x: 0,
                 y: 0,
                 w: TABLE_WIDTH,
@@ -2562,15 +2605,22 @@ const schemaDataB = __SCHEMA_JSON_B__;
             ctx.textBaseline = "middle";
             ctx.textAlign = "left";
             const nameX = t.x + (tableTone ? 14 : 10);
-            ctx.fillText(t.name, nameX, t.y + HEADER_HEIGHT / 2 + 1, t.w - 24);
+            const nameMaxWidth = t.isView ? t.w - 64 : t.w - 24;
+            ctx.fillText(t.name, nameX, t.y + HEADER_HEIGHT / 2 + 1, nameMaxWidth);
+            const nameWidth = Math.min(nameMaxWidth, ctx.measureText(t.name).width);
             if (isRemovedTable) {
-                const nameWidth = Math.min(t.w - 24, ctx.measureText(t.name).width);
                 ctx.strokeStyle = tableTone;
                 ctx.lineWidth = 1.2 / viewScale;
                 ctx.beginPath();
                 ctx.moveTo(nameX, t.y + HEADER_HEIGHT / 2 + 1);
                 ctx.lineTo(nameX + nameWidth, t.y + HEADER_HEIGHT / 2 + 1);
                 ctx.stroke();
+            }
+            if (t.isView) {
+                ctx.font = "700 9px 'Inter', system-ui, sans-serif";
+                ctx.fillStyle = mutedColor;
+                ctx.fillText("VIEW", nameX + nameWidth + 6, t.y + HEADER_HEIGHT / 2 + 2);
+                ctx.font = "600 13px 'Inter', system-ui, sans-serif";
             }
 
             // Small header glyphs flag that this table has more to it than the column
@@ -2758,7 +2808,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
                 const col = columnAt(hit, sy);
                 const fk = col ? hit.foreignKeys.find(function (f) { return f.column === col.name; }) : null;
                 const enumDef = col ? enumByName.get(String(col.dataType).toLowerCase()) : null;
-                let html = "<strong>" + escapeHtml(hit.name) + "</strong>";
+                let html = "<strong>" + escapeHtml(hit.name) + "</strong>" + (hit.isView ? " (view)" : "");
                 if (mode === "diff" && hit.status !== "unchanged") html += " <em>(" + statusLabel(hit.status) + ")</em>";
                 if (col) {
                     html += "<br>" + escapeHtml(col.name) + " &mdash; " + escapeHtml(col.dataType) + (col.isNullable ? " (nullable)" : "");
@@ -2882,19 +2932,66 @@ const schemaDataB = __SCHEMA_JSON_B__;
                 const name = document.createElement("span");
                 name.className = "table-item-name";
                 name.textContent = t.name;
-
-                const count = document.createElement("span");
-                count.className = "table-item-count";
-                count.textContent = String(t.columns.length);
+                if (t.comment) name.title = t.comment;
 
                 btn.appendChild(dot);
                 btn.appendChild(name);
+
+                if (t.isView) {
+                    const viewTag = document.createElement("span");
+                    viewTag.className = "table-item-view-tag";
+                    viewTag.textContent = "View";
+                    btn.appendChild(viewTag);
+                }
+
                 if (mode === "diff" && t.status !== "unchanged") {
                     const pill = document.createElement("span");
                     pill.className = "status-pill is-" + t.status;
                     pill.textContent = statusSymbol(t.status) + " " + statusLabel(t.status);
                     btn.appendChild(pill);
                 }
+
+                const badges = document.createElement("span");
+                badges.className = "table-item-badges";
+
+                if (t.comment) {
+                    const commentBadge = document.createElement("span");
+                    commentBadge.textContent = "💬";
+                    commentBadge.title = t.comment;
+                    badges.appendChild(commentBadge);
+                }
+
+                const hasPrimaryKey = t.columns.some(function (c) { return c.isPrimaryKey; });
+                if (!t.isView && t.columns.length > 0 && !hasPrimaryKey) {
+                    const pkWarning = document.createElement("span");
+                    pkWarning.className = "is-warning";
+                    pkWarning.textContent = "⚠";
+                    pkWarning.title = "No primary key";
+                    badges.appendChild(pkWarning);
+                }
+
+                if (t.foreignKeys.length > 0) {
+                    const fkBadge = document.createElement("span");
+                    fkBadge.textContent = "→" + t.foreignKeys.length;
+                    fkBadge.title = t.foreignKeys.length + (t.foreignKeys.length === 1 ? " foreign key" : " foreign keys");
+                    badges.appendChild(fkBadge);
+                }
+
+                if (t.indexes.length > 0) {
+                    const indexBadge = document.createElement("span");
+                    indexBadge.textContent = "▤" + t.indexes.length;
+                    indexBadge.title = t.indexes.length + (t.indexes.length === 1 ? " index" : " indexes");
+                    badges.appendChild(indexBadge);
+                }
+
+                if (badges.childNodes.length > 0) btn.appendChild(badges);
+
+                const count = document.createElement("span");
+                count.className = "table-item-count";
+                const colCount = t.columns.length;
+                count.textContent = colCount + (colCount === 1 ? " col" : " cols");
+                count.title = colCount + (colCount === 1 ? " column" : " columns");
+
                 btn.appendChild(count);
                 btn.addEventListener("click", function () { focusTable(t); });
                 listEl.appendChild(btn);
@@ -3012,6 +3109,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
             if (fk.onDelete && fk.onDelete !== "NO ACTION") actions.push("ON DELETE " + fk.onDelete);
             if (fk.onUpdate && fk.onUpdate !== "NO ACTION") actions.push("ON UPDATE " + fk.onUpdate);
             if (actions.length > 0) fkLine += " (" + actions.join(", ") + ")";
+            if (fk.constraintName) fkLine += " — " + fk.constraintName;
             lines.push(fkLine);
         }
 
@@ -3037,7 +3135,8 @@ const schemaDataB = __SCHEMA_JSON_B__;
         }
 
         const referencedBy = edges.filter(function (e) { return e.to === t && e.from !== t; }).length;
-        const parts = [t.columns.length + " column" + (t.columns.length === 1 ? "" : "s")];
+        const parts = [t.isView ? "View" : "Table"];
+        parts.push(t.columns.length + " column" + (t.columns.length === 1 ? "" : "s"));
         if (t.foreignKeys.length > 0) parts.push(t.foreignKeys.length + " FK" + (t.foreignKeys.length === 1 ? "" : "s"));
         if (referencedBy > 0) parts.push("referenced by " + referencedBy);
         detailsSubtitle.textContent = parts.join(" · ");

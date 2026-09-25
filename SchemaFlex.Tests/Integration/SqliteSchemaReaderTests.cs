@@ -35,6 +35,8 @@ public class SqliteSchemaReaderTests : IAsyncLifetime
             CREATE INDEX idx_posts_title ON posts(title);
 
             CREATE TRIGGER posts_touch_updated_at AFTER UPDATE ON posts BEGIN SELECT 1; END;
+
+            CREATE VIEW post_titles AS SELECT id, title FROM posts;
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -53,14 +55,19 @@ public class SqliteSchemaReaderTests : IAsyncLifetime
 
         var schemaData = await reader.ReadSchemaAsync(ConnectionString, "main", CancellationToken.None);
 
-        Assert.Equal(new[] { "authors", "posts" }, schemaData.Tables.Select(t => t.Name));
+        Assert.Equal(new[] { "authors", "post_titles", "posts" }, schemaData.Tables.Select(t => t.Name));
 
         var authors = schemaData.Tables.Single(t => t.Name == "authors");
+        Assert.False(authors.IsView);
         var idColumn = authors.Columns.Single(c => c.Name == "id");
         Assert.True(idColumn.IsPrimaryKey);
         Assert.True(idColumn.IsIdentity);
         var nameColumn = authors.Columns.Single(c => c.Name == "name");
         Assert.True(nameColumn.IsUnique);
+
+        var postTitles = schemaData.Tables.Single(t => t.Name == "post_titles");
+        Assert.True(postTitles.IsView);
+        Assert.Equal(new[] { "id", "title" }, postTitles.Columns.Select(c => c.Name));
 
         var posts = schemaData.Tables.Single(t => t.Name == "posts");
         var fk = Assert.Single(posts.ForeignKeys);

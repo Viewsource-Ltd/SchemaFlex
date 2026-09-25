@@ -82,3 +82,16 @@ BEGIN
     )
     WHERE id = NEW.order_id;
 END;
+
+-- A view, so the example demonstrates that SchemaFlex distinguishes views from
+-- base tables in the sidebar and on the canvas rather than just listing everything
+-- the same way.
+CREATE VIEW customer_order_totals AS
+SELECT
+    c.id AS customer_id,
+    c.full_name,
+    COUNT(o.id) AS order_count,
+    COALESCE(SUM(o.total_cents), 0) AS lifetime_total_cents
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id, c.full_name;

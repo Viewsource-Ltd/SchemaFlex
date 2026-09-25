@@ -18,6 +18,7 @@ public class SqliteSchemaReader : ISchemaReader
 
         var tableDefinitions = await GetTableDefinitionsAsync(conn, schemaIdentifier, token);
         var tableNames = tableDefinitions.Keys.ToList();
+        var viewNames = await GetViewNamesAsync(conn, schemaIdentifier, token);
 
         var checkConstraintsByTable = tableDefinitions.ToDictionary(
             kv => kv.Key,
@@ -49,7 +50,8 @@ public class SqliteSchemaReader : ISchemaReader
                 // SQLite has no native table/column comment feature - CREATE TABLE text
                 // can carry SQL comments, but there's no reliable way to attribute one to
                 // the table itself, so this stays null rather than guessing.
-                null))
+                null,
+                viewNames.Contains(name)))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -76,7 +78,7 @@ public class SqliteSchemaReader : ISchemaReader
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"SELECT name, sql FROM {Quote(schema)}.sqlite_master " +
-                           "WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name;";
+                           "WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name;";
 
         await using var reader = await cmd.ExecuteReaderAsync(token);
         while (await reader.ReadAsync(token))
@@ -84,6 +86,22 @@ public class SqliteSchemaReader : ISchemaReader
             var name = reader.GetString(0);
             var sql = reader.IsDBNull(1) ? "" : reader.GetString(1);
             result[name] = sql;
+        }
+
+        return result;
+    }
+
+    private static async Task<HashSet<string>> GetViewNamesAsync(SqliteConnection conn, string schema, CancellationToken token)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"SELECT name FROM {Quote(schema)}.sqlite_master WHERE type = 'view';";
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            result.Add(reader.GetString(0));
         }
 
         return result;
