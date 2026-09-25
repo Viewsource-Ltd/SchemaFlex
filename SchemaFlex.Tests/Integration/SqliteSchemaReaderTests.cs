@@ -37,6 +37,15 @@ public class SqliteSchemaReaderTests : IAsyncLifetime
             CREATE TRIGGER posts_touch_updated_at AFTER UPDATE ON posts BEGIN SELECT 1; END;
 
             CREATE VIEW post_titles AS SELECT id, title FROM posts;
+
+            CREATE VIEW post_summary AS
+                SELECT p.id, p.title, a.name AS author_name
+                FROM posts p JOIN authors a ON a.id = p.author_id;
+
+            CREATE VIEW post_summary_cte AS
+                WITH ranked AS (SELECT * FROM posts)
+                SELECT r.id, a.name AS author_name
+                FROM ranked r JOIN authors a ON a.id = r.author_id;
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -55,7 +64,9 @@ public class SqliteSchemaReaderTests : IAsyncLifetime
 
         var schemaData = await reader.ReadSchemaAsync(ConnectionString, "main", CancellationToken.None);
 
-        Assert.Equal(new[] { "authors", "post_titles", "posts" }, schemaData.Tables.Select(t => t.Name));
+        Assert.Equal(
+            new[] { "authors", "post_summary", "post_summary_cte", "post_titles", "posts" }.OrderBy(n => n, StringComparer.OrdinalIgnoreCase),
+            schemaData.Tables.Select(t => t.Name));
 
         var authors = schemaData.Tables.Single(t => t.Name == "authors");
         Assert.False(authors.IsView);
@@ -68,6 +79,22 @@ public class SqliteSchemaReaderTests : IAsyncLifetime
         var postTitles = schemaData.Tables.Single(t => t.Name == "post_titles");
         Assert.True(postTitles.IsView);
         Assert.Equal(new[] { "id", "title" }, postTitles.Columns.Select(c => c.Name));
+        Assert.Equal(new[] { "posts" }, postTitles.ViewDependencies);
+        Assert.Contains("SELECT", postTitles.Definition, StringComparison.OrdinalIgnoreCase);
+
+        var postSummary = schemaData.Tables.Single(t => t.Name == "post_summary");
+        Assert.True(postSummary.IsView);
+        Assert.Equal(
+            new[] { "authors", "posts" },
+            postSummary.ViewDependencies.OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+
+        // The "ranked" CTE alias must not leak into the dependency list - only the
+        // real tables it (and the outer query) actually scan should show up.
+        var postSummaryCte = schemaData.Tables.Single(t => t.Name == "post_summary_cte");
+        Assert.True(postSummaryCte.IsView);
+        Assert.Equal(
+            new[] { "authors", "posts" },
+            postSummaryCte.ViewDependencies.OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
 
         var posts = schemaData.Tables.Single(t => t.Name == "posts");
         var fk = Assert.Single(posts.ForeignKeys);

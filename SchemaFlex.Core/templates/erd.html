@@ -824,7 +824,6 @@ body {
 .toolbar {
     position: absolute;
     left: 0.75rem;
-    right: 0.75rem;
     bottom: 0.75rem;
     display: flex;
     align-items: center;
@@ -835,7 +834,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     z-index: 5;
-    max-width: max-content;
+    max-width: calc(100% - 1.5rem);
     overflow-x: auto;
     scrollbar-width: thin;
 }
@@ -878,16 +877,12 @@ body {
     pointer-events: none;
 }
 
-@media (max-width: 40rem) {
-    /* Not enough width for the toolbar and the hint to sit side by side on the
-       same row, so the hint moves above the toolbar instead of overlapping it. */
-    .minimap-hint {
-        top: 0.75rem;
-        right: 0.75rem;
-        bottom: auto;
-        left: 0.75rem;
-        text-align: center;
-    }
+.minimap-hint.is-top {
+    /* Toggled by JS (see updateToolbarHintLayout) once the toolbar and hint no
+       longer both fit on the bottom row - a fixed breakpoint can't predict this
+       since the toolbar's own width varies with how many controls it holds. */
+    top: 0.75rem;
+    bottom: auto;
 }
 
 .empty-state {
@@ -1063,7 +1058,7 @@ body {
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
                 <div class="sidebar-head-text">
-                    <h2 class="sidebar-title">Tables</h2>
+                    <h2 class="sidebar-title" id="sidebar-title">Tables</h2>
                     <span class="sidebar-count" id="table-count">0</span>
                 </div>
             </div>
@@ -1162,6 +1157,7 @@ body {
                     <span class="details-legend-item" style="--legend-color: var(--sf-pk)"><span class="details-legend-glyph">&#10003;</span>Has check constraints</span>
                     <span class="details-legend-item" style="--legend-color: var(--sf-muted)"><span class="details-legend-glyph">&#9636;</span>Has indexes</span>
                     <span class="details-legend-item" style="--legend-color: var(--sf-fk)"><span class="details-legend-glyph">&#9889;</span>Has triggers</span>
+                    <span class="details-legend-item" style="--legend-color: var(--sf-edge)"><span class="details-legend-glyph"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="1" y1="7" x2="9" y2="7" stroke-dasharray="2.2 2"></line><line x1="9" y1="7" x2="6" y2="4.3"></line><line x1="9" y1="7" x2="6" y2="9.7"></line></svg></span>View dependency</span>
                 </div>
             </div>
         </aside>
@@ -1313,7 +1309,9 @@ const schemaData = __SCHEMA_JSON__;
                 indexes: indexes,
                 triggers: triggers,
                 comment: typeof t.comment === "string" && t.comment ? t.comment : null,
-                isView: !!t.isView
+                isView: !!t.isView,
+                viewDependencies: Array.isArray(t.viewDependencies) ? t.viewDependencies : [],
+                definition: typeof t.definition === "string" && t.definition ? t.definition : null
             });
         });
 
@@ -1337,6 +1335,10 @@ const schemaData = __SCHEMA_JSON__;
     const schema = normalizeSchema(typeof schemaData !== "undefined" ? schemaData : null);
 
     document.getElementById("table-count").textContent = String(schema.tables.length);
+    const hasTables = schema.tables.some(function (t) { return !t.isView; });
+    const hasViews = schema.tables.some(function (t) { return t.isView; });
+    document.getElementById("sidebar-title").textContent =
+        hasTables && hasViews ? "Tables / Views" : hasViews ? "Views" : "Tables";
     const noteEl = document.getElementById("schema-note");
     if (schema.schema) {
         noteEl.textContent = "Schema “" + schema.schema + "” — offline ERD viewer.";
@@ -1392,6 +1394,12 @@ const schemaData = __SCHEMA_JSON__;
         const checkLines = [];
 
         schemaModel.tables.forEach(function (t) {
+            if (t.isView && t.definition) {
+                const viewHeader = t.comment ? "-- " + t.comment + "\n" : "";
+                sections.push(viewHeader + t.definition);
+                return;
+            }
+
             const colLines = t.columns.map(function (c) {
                 // A classic Postgres serial/bigserial column isn't flagged is_identity by
                 // information_schema - it's just an integer column whose default calls
@@ -1551,6 +1559,7 @@ const schemaData = __SCHEMA_JSON__;
             triggers: t.triggers,
             comment: t.comment,
             isView: t.isView,
+            viewDependencies: t.viewDependencies,
             x: 0,
             y: 0,
             w: TABLE_WIDTH,
@@ -1589,10 +1598,29 @@ const schemaData = __SCHEMA_JSON__;
             const target = tableByName.get(fk.refTable.toLowerCase());
             if (!target) return;
             edges.push({
+                kind: "fk",
                 from: t,
                 to: target,
                 fk: fk,
                 sketchSeed: hashInt(t.name + "." + fk.column + "->" + target.name + "." + fk.refColumn + "|" + fk.constraintName)
+            });
+        });
+    });
+
+    // ── View dependency edges ────────────────────────────────────────────────
+    // e.from is the view; e.to is a table (or another view) it selects from.
+    // These aren't real constraints - there's no column-level mapping, just a
+    // "this view reads from that table" fact - so they're drawn and hovered
+    // differently from FK edges (see the `kind` branches below).
+    layoutTables.forEach(function (t) {
+        (t.viewDependencies || []).forEach(function (refName) {
+            const target = tableByName.get(String(refName).toLowerCase());
+            if (!target || target === t) return;
+            edges.push({
+                kind: "view",
+                from: t,
+                to: target,
+                sketchSeed: hashInt(t.name + "~>" + target.name)
             });
         });
     });
@@ -1828,9 +1856,24 @@ const schemaData = __SCHEMA_JSON__;
     const ctx = canvas.getContext("2d");
     const emptyState = document.getElementById("empty-state");
     const tooltip = document.getElementById("tooltip");
+    const toolbarEl = document.querySelector(".toolbar");
+    const minimapHintEl = document.querySelector(".minimap-hint");
 
     if (layoutTables.length === 0) {
         emptyState.classList.add("is-visible");
+    }
+
+    // The toolbar's width depends on how many controls it holds, so a fixed
+    // breakpoint can't predict when it'll collide with the hint text sharing
+    // the same bottom row - measure both and move the hint above instead.
+    function updateToolbarHintLayout() {
+        if (!toolbarEl || !minimapHintEl) return;
+        minimapHintEl.classList.remove("is-top");
+        const toolbarRect = toolbarEl.getBoundingClientRect();
+        const hintRect = minimapHintEl.getBoundingClientRect();
+        if (toolbarRect.right + 8 > hintRect.left) {
+            minimapHintEl.classList.add("is-top");
+        }
     }
 
     let dpr = window.devicePixelRatio || 1;
@@ -1863,6 +1906,7 @@ const schemaData = __SCHEMA_JSON__;
         canvas.height = Math.max(1, Math.round(rect.height * dpr));
         canvas.style.width = rect.width + "px";
         canvas.style.height = rect.height + "px";
+        updateToolbarHintLayout();
         scheduleRender();
     }
 
@@ -1983,6 +2027,19 @@ const schemaData = __SCHEMA_JSON__;
         return { x: x, y: y };
     }
 
+    // A view dependency has no single column to anchor on - it's a whole-table
+    // relationship - so it connects into the header band rather than a row.
+    // That's deliberately not the box's vertical center: the center sits right
+    // in among whichever rows happen to fall there, level with any FK edges
+    // anchored on those same rows - close enough that a view edge's own stub
+    // could run straight through a real FK's crow's-foot glyph. Every row lives
+    // below HEADER_HEIGHT, so anchoring above that line guarantees a view edge
+    // never shares a Y with a column-level FK connection.
+    function tableHeaderPoint(table, side) {
+        const x = side === "left" ? table.x : table.x + table.w;
+        return { x: x, y: table.y + HEADER_HEIGHT / 2 };
+    }
+
     // Shared by rendering and hit-testing so the drawn curve and the "am I hovering
     // it" check never disagree. Anchors sit on whichever side of each table faces
     // the other, and the control points are pulled straight out horizontally, which
@@ -1996,10 +2053,14 @@ const schemaData = __SCHEMA_JSON__;
     // would route directly through the table and be drawn first (edges are drawn
     // under tables), leaving only a stub visible where it pokes out from a corner.
     function edgeGeometry(e) {
+        const anchor = e.kind === "view"
+            ? function (t, side) { return tableHeaderPoint(t, side); }
+            : function (t, side, columnName) { return edgePoint(t, columnName, side); };
+
         if (e.from === e.to) {
             const t = e.from;
-            const start = edgePoint(t, e.fk.column, "left");
-            const end = edgePoint(t, e.fk.refColumn, "left");
+            const start = anchor(t, "left", e.fk && e.fk.column);
+            const end = anchor(t, "left", e.fk && e.fk.refColumn);
             const loopOut = 34;
             const cp1 = { x: t.x - loopOut, y: start.y };
             const cp2 = { x: t.x - loopOut, y: end.y };
@@ -2007,8 +2068,8 @@ const schemaData = __SCHEMA_JSON__;
         }
 
         const goingRight = e.to.x >= e.from.x;
-        const start = edgePoint(e.from, e.fk.column, goingRight ? "right" : "left");
-        const end = edgePoint(e.to, e.fk.refColumn, goingRight ? "left" : "right");
+        const start = anchor(e.from, goingRight ? "right" : "left", e.fk && e.fk.column);
+        const end = anchor(e.to, goingRight ? "left" : "right", e.fk && e.fk.refColumn);
         const dx = Math.max(50, Math.abs(end.x - start.x) * 0.5);
         const cp1 = { x: start.x + (goingRight ? dx : -dx), y: start.y };
         const cp2 = { x: end.x + (goingRight ? -dx : dx), y: end.y };
@@ -2071,8 +2132,7 @@ const schemaData = __SCHEMA_JSON__;
     // hard cap rather than a true fixed point - dense, adversarial layouts
     // could in principle oscillate, and a slightly-imperfect route beats a
     // frozen tab).
-    function routeAroundBlockers(points, exclude, g) {
-        const margin = 10;
+    function routeAroundBlockers(points, exclude, g, margin) {
         let pts = points;
         for (let iter = 0; iter < 16; iter++) {
             let blocked = false;
@@ -2127,6 +2187,13 @@ const schemaData = __SCHEMA_JSON__;
     // table sitting between two others in a different layer doesn't get a line
     // drawn straight through it).
     function orthogonalPath(e, g) {
+        // View edges get noticeably more breathing room than FK edges: they're
+        // dashed background context rather than the primary relationship, and
+        // with only a column-level anchor to react to (there's no FK to sit
+        // flush against), the tighter FK margin read as running along - or
+        // under - a table it was only supposed to be routed past.
+        const margin = e.kind === "view" ? 22 : 10;
+
         let midX = (g.start.x + g.end.x) / 2;
 
         // Keep the crossing within the band the cardinality stubs already clear,
@@ -2155,13 +2222,13 @@ const schemaData = __SCHEMA_JSON__;
                 }
             }
             if (!blocker) break;
-            const leftOption = blocker.x - 10;
-            const rightOption = blocker.x + blocker.w + 10;
+            const leftOption = blocker.x - margin;
+            const rightOption = blocker.x + blocker.w + margin;
             midX = Math.abs(leftOption - midX) <= Math.abs(rightOption - midX) ? leftOption : rightOption;
         }
 
         const initial = [g.start, { x: midX, y: g.start.y }, { x: midX, y: g.end.y }, g.end];
-        return routeAroundBlockers(initial, e, g);
+        return routeAroundBlockers(initial, e, g, margin);
     }
 
     // All three line styles now share the same obstacle-avoiding route
@@ -2375,6 +2442,24 @@ const schemaData = __SCHEMA_JSON__;
         }
     }
 
+    // A plain open arrowhead for a view's dependency on a table/view - unlike
+    // drawCardinalityMark, there's no one/many distinction to show, just direction.
+    function drawDependencyArrow(x, y, dir, color) {
+        const s = 1 / viewScale;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.4 * s;
+        ctx.lineCap = "round";
+
+        const apexX = x + dir * 6 * s;
+        const tipX = x + dir * 16 * s;
+        ctx.beginPath();
+        ctx.moveTo(apexX, y);
+        ctx.lineTo(tipX, y - 5 * s);
+        ctx.moveTo(apexX, y);
+        ctx.lineTo(tipX, y + 5 * s);
+        ctx.stroke();
+    }
+
     function drawRoundedRect(x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -2442,6 +2527,7 @@ const schemaData = __SCHEMA_JSON__;
             ctx.lineJoin = lineStyle === "straight" ? "miter" : "round";
             ctx.lineCap = "round";
             ctx.globalAlpha = highlighted ? 1 : 0.6;
+            if (e.kind === "view") ctx.setLineDash([6 / viewScale, 4 / viewScale]);
 
             // All three styles follow the same obstacle-avoiding route - they
             // only differ in how it's drawn: straight strokes it as-is, curved
@@ -2459,15 +2545,23 @@ const schemaData = __SCHEMA_JSON__;
                 strokeRoundedPolyline(routedPoints, 14);
             }
 
+            ctx.setLineDash([]);
             ctx.globalAlpha = 1;
 
-            // Crow's foot at the FK ("many") end; a nullable FK column gets a circle
-            // (zero-or-many) instead of a bar (one-or-many). A double bar at the
-            // referenced ("one") end, since a PK/unique column is always exactly one.
-            const fkColumn = e.from.columns.find(function (c) { return c.name === e.fk.column; });
-            const mandatory = !fkColumn || !fkColumn.isNullable;
-            drawCardinalityMark(g.start.x, g.start.y, g.dirStart, true, mandatory, lineColor);
-            drawCardinalityMark(g.end.x, g.end.y, g.dirEnd, false, true, lineColor);
+            if (e.kind === "view") {
+                // No cardinality here - a view dependency isn't a constraint, just a
+                // "reads from" fact - so a single small arrowhead pointing at the
+                // table/view it depends on is enough.
+                drawDependencyArrow(g.end.x, g.end.y, g.dirEnd, lineColor);
+            } else {
+                // Crow's foot at the FK ("many") end; a nullable FK column gets a circle
+                // (zero-or-many) instead of a bar (one-or-many). A double bar at the
+                // referenced ("one") end, since a PK/unique column is always exactly one.
+                const fkColumn = e.from.columns.find(function (c) { return c.name === e.fk.column; });
+                const mandatory = !fkColumn || !fkColumn.isNullable;
+                drawCardinalityMark(g.start.x, g.start.y, g.dirStart, true, mandatory, lineColor);
+                drawCardinalityMark(g.end.x, g.end.y, g.dirEnd, false, true, lineColor);
+            }
         });
 
         layoutTables.forEach(function (t) {
@@ -2692,13 +2786,18 @@ const schemaData = __SCHEMA_JSON__;
                 }
 
                 if (edgeHit) {
-                    const fkColumn = edgeHit.from.columns.find(function (c) { return c.name === edgeHit.fk.column; });
-                    const mandatory = !fkColumn || !fkColumn.isNullable;
-                    let html = "<strong>" + escapeHtml(edgeHit.from.name) + "." + escapeHtml(edgeHit.fk.column) + "</strong>";
-                    html += " &rarr; " + escapeHtml(edgeHit.to.name) + "." + escapeHtml(edgeHit.fk.refColumn);
-                    html += "<br>" + (mandatory ? "One-or-many" : "Zero-or-many") + " " + escapeHtml(edgeHit.from.name);
-                    html += " per " + escapeHtml(edgeHit.to.name);
-                    if (edgeHit.fk.constraintName) html += "<br>" + escapeHtml(edgeHit.fk.constraintName);
+                    let html;
+                    if (edgeHit.kind === "view") {
+                        html = "<strong>" + escapeHtml(edgeHit.from.name) + "</strong> depends on " + escapeHtml(edgeHit.to.name);
+                    } else {
+                        const fkColumn = edgeHit.from.columns.find(function (c) { return c.name === edgeHit.fk.column; });
+                        const mandatory = !fkColumn || !fkColumn.isNullable;
+                        html = "<strong>" + escapeHtml(edgeHit.from.name) + "." + escapeHtml(edgeHit.fk.column) + "</strong>";
+                        html += " &rarr; " + escapeHtml(edgeHit.to.name) + "." + escapeHtml(edgeHit.fk.refColumn);
+                        html += "<br>" + (mandatory ? "One-or-many" : "Zero-or-many") + " " + escapeHtml(edgeHit.from.name);
+                        html += " per " + escapeHtml(edgeHit.to.name);
+                        if (edgeHit.fk.constraintName) html += "<br>" + escapeHtml(edgeHit.fk.constraintName);
+                    }
                     tooltip.innerHTML = html;
                     tooltip.style.left = (sx + 16) + "px";
                     tooltip.style.top = (sy + 16) + "px";
@@ -2957,6 +3056,9 @@ const schemaData = __SCHEMA_JSON__;
         const parts = [t.isView ? "View" : "Table"];
         parts.push(t.columns.length + " column" + (t.columns.length === 1 ? "" : "s"));
         if (t.foreignKeys.length > 0) parts.push(t.foreignKeys.length + " FK" + (t.foreignKeys.length === 1 ? "" : "s"));
+        if (t.isView && (t.viewDependencies || []).length > 0) {
+            parts.push("depends on " + t.viewDependencies.length + " table" + (t.viewDependencies.length === 1 ? "" : "s"));
+        }
         if (referencedBy > 0) parts.push("referenced by " + referencedBy);
         detailsSubtitle.textContent = parts.join(" · ");
 

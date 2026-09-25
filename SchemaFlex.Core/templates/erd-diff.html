@@ -892,7 +892,6 @@ body {
 .toolbar {
     position: absolute;
     left: 0.75rem;
-    right: 0.75rem;
     bottom: 0.75rem;
     display: flex;
     align-items: center;
@@ -903,7 +902,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     z-index: 5;
-    max-width: max-content;
+    max-width: calc(100% - 1.5rem);
     overflow-x: auto;
     scrollbar-width: thin;
 }
@@ -946,16 +945,12 @@ body {
     pointer-events: none;
 }
 
-@media (max-width: 40rem) {
-    /* Not enough width for the toolbar and the hint to sit side by side on the
-       same row, so the hint moves above the toolbar instead of overlapping it. */
-    .minimap-hint {
-        top: 0.75rem;
-        right: 0.75rem;
-        bottom: auto;
-        left: 0.75rem;
-        text-align: center;
-    }
+.minimap-hint.is-top {
+    /* Toggled by JS (see updateToolbarHintLayout) once the toolbar and hint no
+       longer both fit on the bottom row - a fixed breakpoint can't predict this
+       since the toolbar's own width varies with how many controls it holds. */
+    top: 0.75rem;
+    bottom: auto;
 }
 
 .empty-state {
@@ -1061,7 +1056,7 @@ body {
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
                 <div class="sidebar-head-text">
-                    <h2 class="sidebar-title">Tables</h2>
+                    <h2 class="sidebar-title" id="sidebar-title">Tables</h2>
                     <span class="sidebar-count" id="table-count">0</span>
                 </div>
             </div>
@@ -1546,6 +1541,11 @@ const schemaDataB = __SCHEMA_JSON_B__;
 
         tableCountEl.textContent = String(layoutTables.length);
 
+        const hasTables = layoutTables.some(function (t) { return !t.isView; });
+        const hasViews = layoutTables.some(function (t) { return t.isView; });
+        document.getElementById("sidebar-title").textContent =
+            hasTables && hasViews ? "Tables / Views" : hasViews ? "Views" : "Tables";
+
         const summaryEl = document.getElementById("sidebar-summary");
         const parts = [];
         if (counts.added) parts.push('<span class="stat stat-added">' + counts.added + ' added</span>');
@@ -1902,9 +1902,24 @@ const schemaDataB = __SCHEMA_JSON_B__;
     const ctx = canvas.getContext("2d");
     const emptyState = document.getElementById("empty-state");
     const tooltip = document.getElementById("tooltip");
+    const toolbarEl = document.querySelector(".toolbar");
+    const minimapHintEl = document.querySelector(".minimap-hint");
 
     if (layoutTables.length === 0) {
         emptyState.classList.add("is-visible");
+    }
+
+    // The toolbar's width depends on how many controls it holds, so a fixed
+    // breakpoint can't predict when it'll collide with the hint text sharing
+    // the same bottom row - measure both and move the hint above instead.
+    function updateToolbarHintLayout() {
+        if (!toolbarEl || !minimapHintEl) return;
+        minimapHintEl.classList.remove("is-top");
+        const toolbarRect = toolbarEl.getBoundingClientRect();
+        const hintRect = minimapHintEl.getBoundingClientRect();
+        if (toolbarRect.right + 8 > hintRect.left) {
+            minimapHintEl.classList.add("is-top");
+        }
     }
 
     let dpr = window.devicePixelRatio || 1;
@@ -1928,6 +1943,7 @@ const schemaDataB = __SCHEMA_JSON_B__;
         canvas.height = Math.max(1, Math.round(rect.height * dpr));
         canvas.style.width = rect.width + "px";
         canvas.style.height = rect.height + "px";
+        updateToolbarHintLayout();
         scheduleRender();
     }
 

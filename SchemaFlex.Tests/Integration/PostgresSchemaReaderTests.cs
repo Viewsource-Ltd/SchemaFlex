@@ -48,6 +48,15 @@ public class PostgresSchemaReaderTests : IAsyncLifetime
                 BEFORE UPDATE ON posts
                 FOR EACH ROW
                 EXECUTE FUNCTION touch_updated_at();
+
+            CREATE VIEW post_summary AS
+                SELECT p.id, p.title, a.name AS author_name
+                FROM posts p JOIN authors a ON a.id = p.author_id;
+
+            CREATE VIEW post_summary_cte AS
+                WITH ranked AS (SELECT * FROM posts)
+                SELECT r.id, a.name AS author_name
+                FROM ranked r JOIN authors a ON a.id = r.author_id;
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -61,7 +70,9 @@ public class PostgresSchemaReaderTests : IAsyncLifetime
 
         var schemaData = await reader.ReadSchemaAsync(_container.GetConnectionString(), "public", CancellationToken.None);
 
-        Assert.Equal(new[] { "authors", "posts" }, schemaData.Tables.Select(t => t.Name));
+        Assert.Equal(
+            new[] { "authors", "post_summary", "post_summary_cte", "posts" }.OrderBy(n => n, StringComparer.OrdinalIgnoreCase),
+            schemaData.Tables.Select(t => t.Name));
 
         var authors = schemaData.Tables.Single(t => t.Name == "authors");
         Assert.Equal("People who write posts", authors.Comment);
@@ -95,5 +106,20 @@ public class PostgresSchemaReaderTests : IAsyncLifetime
         var moodEnum = Assert.Single(schemaData.Enums);
         Assert.Equal("mood", moodEnum.Name);
         Assert.Equal(new[] { "happy", "sad", "neutral" }, moodEnum.Values);
+
+        var postSummary = schemaData.Tables.Single(t => t.Name == "post_summary");
+        Assert.True(postSummary.IsView);
+        Assert.Equal(
+            new[] { "authors", "posts" },
+            postSummary.ViewDependencies.OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+        Assert.Contains("CREATE VIEW", postSummary.Definition, StringComparison.OrdinalIgnoreCase);
+
+        // The "ranked" CTE alias must not leak into the dependency list - only the
+        // real tables the view actually reads from should show up.
+        var postSummaryCte = schemaData.Tables.Single(t => t.Name == "post_summary_cte");
+        Assert.True(postSummaryCte.IsView);
+        Assert.Equal(
+            new[] { "authors", "posts" },
+            postSummaryCte.ViewDependencies.OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
     }
 }

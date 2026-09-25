@@ -16,6 +16,8 @@ public class SqlServerSchemaReader : ISchemaReader
 
         var (primaryKeysByTable, uniqueColumnsByTable) = await GetKeyConstraintColumnsAsync(conn, schema, token);
         var foreignKeysByTable = await GetForeignKeysAsync(conn, schema, token);
+        var viewDependenciesByTable = await GetViewDependenciesAsync(conn, schema, token);
+        var viewDefinitionsByTable = await GetViewDefinitionsAsync(conn, schema, token);
         var checkConstraintsByTable = await GetCheckConstraintsAsync(conn, schema, token);
         var indexesByTable = await GetIndexesAsync(conn, schema, token);
         var triggersByTable = await GetTriggersAsync(conn, schema, token);
@@ -32,7 +34,9 @@ public class SqlServerSchemaReader : ISchemaReader
                 indexesByTable.TryGetValue(name, out var indexes) ? indexes : new List<IndexInfo>(),
                 triggersByTable.TryGetValue(name, out var triggers) ? triggers : new List<TriggerInfo>(),
                 tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null,
-                viewNames.Contains(name)))
+                viewNames.Contains(name),
+                viewDependenciesByTable.TryGetValue(name, out var deps) ? deps : new List<string>(),
+                viewDefinitionsByTable.TryGetValue(name, out var definition) ? definition : null))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -203,6 +207,68 @@ public class SqlServerSchemaReader : ISchemaReader
             }
 
             list.Add(new ForeignKey(constraintName, columnName, refTable, refColumn, onDelete, onUpdate));
+        }
+
+        return result;
+    }
+
+    private static async Task<Dictionary<string, List<string>>> GetViewDependenciesAsync(SqlConnection conn, string schema, CancellationToken token)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+        // sys.sql_expression_dependencies is populated by SQL Server itself from the
+        // parsed view definition, so it already resolves straight through any CTEs in
+        // the view body down to the real tables (and other views) actually touched -
+        // no text parsing needed here, unlike SQLite below.
+        await using var cmd = new SqlCommand(
+            @"SELECT o.name AS view_name, ro.name AS ref_name
+              FROM sys.sql_expression_dependencies d
+              JOIN sys.objects o ON o.object_id = d.referencing_id
+              JOIN sys.schemas s ON s.schema_id = o.schema_id
+              JOIN sys.objects ro ON ro.object_id = d.referenced_id
+              WHERE s.name = @schema AND o.type = 'V' AND ro.type IN ('U', 'V') AND o.object_id <> ro.object_id;",
+            conn);
+        cmd.Parameters.AddWithValue("@schema", schema);
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            var viewName = reader.GetString(0);
+            var refName = reader.GetString(1);
+
+            if (!result.TryGetValue(viewName, out var list))
+            {
+                list = new List<string>();
+                result[viewName] = list;
+            }
+
+            if (!list.Contains(refName, StringComparer.OrdinalIgnoreCase)) list.Add(refName);
+        }
+
+        return result;
+    }
+
+    private static async Task<Dictionary<string, string>> GetViewDefinitionsAsync(SqlConnection conn, string schema, CancellationToken token)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // sys.sql_modules.definition holds the view's original CREATE VIEW text verbatim
+        // (nothing to reconstruct - unlike Postgres/MySQL below, which only expose the
+        // SELECT body and leave the wrapping CREATE VIEW to be rebuilt here).
+        await using var cmd = new SqlCommand(
+            @"SELECT v.name, m.definition
+              FROM sys.views v
+              JOIN sys.sql_modules m ON m.object_id = v.object_id
+              JOIN sys.schemas s ON s.schema_id = v.schema_id
+              WHERE s.name = @schema;",
+            conn);
+        cmd.Parameters.AddWithValue("@schema", schema);
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            if (reader.IsDBNull(1)) continue;
+            result[reader.GetString(0)] = reader.GetString(1);
         }
 
         return result;

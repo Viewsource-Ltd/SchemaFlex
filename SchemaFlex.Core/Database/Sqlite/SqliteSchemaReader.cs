@@ -28,6 +28,8 @@ public class SqliteSchemaReader : ISchemaReader
         var columnsByTable = new Dictionary<string, List<Column>>(StringComparer.OrdinalIgnoreCase);
         var foreignKeysByTable = new Dictionary<string, List<ForeignKey>>(StringComparer.OrdinalIgnoreCase);
         var indexesByTable = new Dictionary<string, List<IndexInfo>>(StringComparer.OrdinalIgnoreCase);
+        var viewDependenciesByTable = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var rootPageTableNames = await GetRootPageTableNamesAsync(conn, schemaIdentifier, token);
 
         foreach (var tableName in tableNames)
         {
@@ -35,6 +37,11 @@ public class SqliteSchemaReader : ISchemaReader
             columnsByTable[tableName] = await GetColumnsAsync(conn, schemaIdentifier, tableName, uniqueColumns, tableDefinitions[tableName], token);
             foreignKeysByTable[tableName] = await GetForeignKeysAsync(conn, schemaIdentifier, tableName, token);
             indexesByTable[tableName] = await GetIndexesAsync(conn, schemaIdentifier, tableName, token);
+
+            if (viewNames.Contains(tableName))
+            {
+                viewDependenciesByTable[tableName] = await GetViewDependenciesAsync(conn, schemaIdentifier, tableName, rootPageTableNames, token);
+            }
         }
 
         var triggersByTable = await GetTriggersAsync(conn, schemaIdentifier, token);
@@ -51,7 +58,9 @@ public class SqliteSchemaReader : ISchemaReader
                 // can carry SQL comments, but there's no reliable way to attribute one to
                 // the table itself, so this stays null rather than guessing.
                 null,
-                viewNames.Contains(name)))
+                viewNames.Contains(name),
+                viewDependenciesByTable.TryGetValue(name, out var deps) ? deps : new List<string>(),
+                viewNames.Contains(name) ? tableDefinitions[name] : null))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -213,6 +222,58 @@ public class SqliteSchemaReader : ISchemaReader
             // SQLite foreign keys aren't named - synthesize a stable, per-table identifier
             // from the pragma's own "id" grouping instead.
             result.Add(new ForeignKey($"fk_{tableName}_{id}", fromColumn, refTable, toColumn, NormalizeAction(onDelete), NormalizeAction(onUpdate)));
+        }
+
+        return result;
+    }
+
+    // SQLite has no dependency catalog (unlike the other three engines' information_schema/
+    // sys.* views), and regexing the view's raw CREATE VIEW text would misidentify a CTE's
+    // name as a table reference (e.g. "WITH ranked AS (...) SELECT ... FROM ranked" would
+    // wrongly report "ranked" as a dependency) - and even EXPLAIN QUERY PLAN's prose output
+    // ("SCAN p", "SEARCH a ...") names whatever alias the view's own SQL happened to use, not
+    // the real table. So this goes one level lower: EXPLAIN gives the raw VDBE bytecode, where
+    // an OpenRead/OpenWrite opcode's p2 operand is always the root page of the real btree it
+    // opens - never an alias - which sqlite_master.rootpage resolves straight back to the real
+    // table (a CTE is materialized into a private ephemeral b-tree with no matching rootpage,
+    // so it's naturally excluded without any name-based filtering).
+    private static async Task<Dictionary<int, string>> GetRootPageTableNamesAsync(SqliteConnection conn, string schema, CancellationToken token)
+    {
+        var result = new Dictionary<int, string>();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"SELECT rootpage, tbl_name FROM {Quote(schema)}.sqlite_master WHERE type IN ('table', 'index') AND rootpage > 0;";
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            result[reader.GetInt32(0)] = reader.GetString(1);
+        }
+
+        return result;
+    }
+
+    private static async Task<List<string>> GetViewDependenciesAsync(
+        SqliteConnection conn, string schema, string viewName, Dictionary<int, string> rootPageTableNames, CancellationToken token)
+    {
+        var result = new List<string>();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"EXPLAIN SELECT * FROM {Quote(schema)}.{Quote(viewName)};";
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        var opcodeOrdinal = reader.GetOrdinal("opcode");
+        var p2Ordinal = reader.GetOrdinal("p2");
+        while (await reader.ReadAsync(token))
+        {
+            var opcode = reader.GetString(opcodeOrdinal);
+            if (opcode != "OpenRead" && opcode != "OpenWrite") continue;
+
+            var rootPage = reader.GetInt32(p2Ordinal);
+            if (!rootPageTableNames.TryGetValue(rootPage, out var tableName)) continue; // ephemeral (CTE) b-tree
+            if (string.Equals(tableName, viewName, StringComparison.OrdinalIgnoreCase)) continue; // self-reference
+
+            if (!result.Contains(tableName, StringComparer.OrdinalIgnoreCase)) result.Add(tableName);
         }
 
         return result;

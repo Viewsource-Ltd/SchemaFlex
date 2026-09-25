@@ -8,4 +8,6 @@ public record Table(
     List<IndexInfo> Indexes,
     List<TriggerInfo> Triggers,
     string? Comment,
-    bool IsView = false);
+    bool IsView = false,
+    List<string> ViewDependencies = null!,
+    string? Definition = null);

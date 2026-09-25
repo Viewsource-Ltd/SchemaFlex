@@ -17,6 +17,8 @@ public class PostgresSchemaReader : ISchemaReader
         var primaryKeysByTable = await GetPrimaryKeysAsync(conn, schema, token);
         var uniqueColumnsByTable = await GetUniqueColumnsAsync(conn, schema, token);
         var foreignKeysByTable = await GetForeignKeysAsync(conn, schema, token);
+        var viewDependenciesByTable = await GetViewDependenciesAsync(conn, schema, token);
+        var viewDefinitionsByTable = await GetViewDefinitionsAsync(conn, schema, token);
         var checkConstraintsByTable = await GetCheckConstraintsAsync(conn, schema, token);
         var indexesByTable = await GetIndexesAsync(conn, schema, token);
         var triggersByTable = await GetTriggersAsync(conn, schema, token);
@@ -34,7 +36,9 @@ public class PostgresSchemaReader : ISchemaReader
                 indexesByTable.TryGetValue(name, out var indexes) ? indexes : new List<IndexInfo>(),
                 triggersByTable.TryGetValue(name, out var triggers) ? triggers : new List<TriggerInfo>(),
                 tableCommentsByTable.TryGetValue(name, out var comment) ? comment : null,
-                viewNames.Contains(name)))
+                viewNames.Contains(name),
+                viewDependenciesByTable.TryGetValue(name, out var deps) ? deps : new List<string>(),
+                viewDefinitionsByTable.TryGetValue(name, out var definition) ? definition : null))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -336,6 +340,65 @@ public class PostgresSchemaReader : ISchemaReader
             }
 
             list.Add(new ForeignKey(constraintName, columnName, refTable, refColumn, onDelete, onUpdate));
+        }
+
+        return result;
+    }
+
+    private static async Task<Dictionary<string, List<string>>> GetViewDependenciesAsync(NpgsqlConnection conn, string schema, CancellationToken token)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+        // view_table_usage is derived by Postgres from the rewritten query (pg_rewrite),
+        // so it already resolves straight through any CTEs in the view body down to the
+        // real tables (and other views) actually touched - no text parsing needed here.
+        await using var cmd = new NpgsqlCommand(
+            @"SELECT view_name, table_name
+              FROM information_schema.view_table_usage
+              WHERE view_schema = @schema AND table_name <> view_name;",
+            conn);
+        cmd.Parameters.AddWithValue("schema", schema);
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            var viewName = reader.GetString(0);
+            var refName = reader.GetString(1);
+
+            if (!result.TryGetValue(viewName, out var list))
+            {
+                list = new List<string>();
+                result[viewName] = list;
+            }
+
+            if (!list.Contains(refName, StringComparer.OrdinalIgnoreCase)) list.Add(refName);
+        }
+
+        return result;
+    }
+
+    private static async Task<Dictionary<string, string>> GetViewDefinitionsAsync(NpgsqlConnection conn, string schema, CancellationToken token)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // pg_get_viewdef only returns the SELECT body, not the wrapping CREATE VIEW -
+        // unlike SQL Server's sys.sql_modules.definition, which carries the original
+        // statement verbatim - so the CREATE VIEW clause is rebuilt here instead.
+        await using var cmd = new NpgsqlCommand(
+            @"SELECT c.relname, pg_get_viewdef(c.oid, true)
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = @schema AND c.relkind = 'v';",
+            conn);
+        cmd.Parameters.AddWithValue("schema", schema);
+
+        await using var reader = await cmd.ExecuteReaderAsync(token);
+        while (await reader.ReadAsync(token))
+        {
+            var viewName = reader.GetString(0);
+            if (reader.IsDBNull(1)) continue;
+            var body = reader.GetString(1).TrimEnd('\n', '\r', ' ', '\t', ';');
+            result[viewName] = "CREATE VIEW \"" + viewName + "\" AS\n" + body + ";";
         }
 
         return result;
